@@ -36,21 +36,12 @@
     #status { margin-top: 1em; font-size: 1em; min-height: 1.5em; }
     @media (max-width: 600px) { h1 { font-size: 1.5em; } button { font-size: 1em; } }
   </style>
-
-  <!-- Formbricks Setup -->
-  <script>
-    window.formbricks = {
-      environmentId: "cmc9a9kx9qubhvz01j0o6ooht", // deine Env ID
-    };
-  </script>
-  <script async src="https://cdn.formbricks.com/index.js"></script>
 </head>
-
 <body>
   <h1>📣 Feedback zu Fritflix</h1>
-  <button onclick="sendFeedback('🎞️ Stream ruckelt')">🎞️ Stream ruckelt</button>
-  <button onclick="sendFeedback('⛔ Stream startet nicht')">⛔ Stream startet nicht</button>
-  <button onclick="sendFeedback('✅ Alles gut')">✅ Alles gut</button>
+  <button onclick="sendFeedback('Stream ruckelt')">🎞️ Stream ruckelt</button>
+  <button onclick="sendFeedback('Stream startet nicht')">⛔ Stream startet nicht</button>
+  <button onclick="sendFeedback('Alles gut')">✅ Alles gut</button>
   <div id="status"></div>
 
   <script>
@@ -59,17 +50,28 @@
       statusDiv.textContent = "⏳ Sende Feedback...";
 
       try {
-        formbricks.triggerSurvey({
-          surveyId: "cmc9a9x1zqnkivo013met32fi", // deine Survey ID
-          data: {
-            feedback: `${messageText} – ${new Date().toLocaleString("de-DE", { timeZone: "Europe/Berlin" })}`
-          }
+        const response = await fetch("https://app.formbricks.com/api/v1/responses", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-api-key": "94e876acb1f8e027f1907153f270627e" // 🔁 Ersetze durch deinen echten Key
+          },
+          body: JSON.stringify({
+            surveyId: "cmc9a9x1zqnkivo013met32fi", // 🔁 Ersetze durch deine echte Survey-ID
+            data: {
+              feedback: `🚨 Nutzer-Feedback: ${messageText} 🕒 ${new Date().toLocaleString("de-DE", { timeZone: "Europe/Berlin" })}`
+            }
+          })
         });
 
-        statusDiv.textContent = "✅ Danke für dein Feedback!";
-        setTimeout(() => (statusDiv.textContent = ""), 3000);
+        if (response.ok) {
+          statusDiv.textContent = "✅ Danke für dein Feedback!";
+          setTimeout(() => (statusDiv.textContent = ""), 3000);
+        } else {
+          statusDiv.textContent = "❌ Fehler beim Senden.";
+        }
       } catch (error) {
-        statusDiv.textContent = "❌ Feedback konnte nicht gesendet werden.";
+        statusDiv.textContent = "❌ Verbindung fehlgeschlagen.";
         console.error(error);
       }
     }
