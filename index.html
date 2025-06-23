@@ -37,11 +37,13 @@
     @media (max-width: 600px) { h1 { font-size: 1.5em; } button { font-size: 1em; } }
   </style>
 
-  <!-- EmailJS Setup -->
-  <script src="https://cdn.emailjs.com/dist/email.min.js"></script>
+  <!-- EmailJS SDK v4 -->
+  <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
   <script>
     (function() {
-      emailjs.init("E4jHB9-hSCQJ6yEUf"); // Ersetze mit deiner EmailJS Public Key
+      emailjs.init({
+        publicKey: "E4jHB9-hSCQJ6yEUf" // Ersetze mit deiner Public Key (z.B. user_xxxxxxxxxxxxxxxxxxxxxxxxxxxx)
+      });
     })();
   </script>
 </head>
@@ -59,7 +61,7 @@
       statusDiv.textContent = "⏳ Sende Feedback...";
 
       try {
-        await emailjs.send("service_i3ceboq","template_3iie047", {
+        await emailjs.send("service_i3ceboq", "template_3iie047", {
           feedback: messageText,
           timestamp: new Date().toLocaleString("de-DE", { timeZone: "Europe/Berlin" })
         });
@@ -67,7 +69,7 @@
         setTimeout(() => (statusDiv.textContent = ""), 3000);
       } catch (error) {
         statusDiv.textContent = "❌ Feedback konnte nicht gesendet werden.";
-        console.error(error);
+        console.error("Fehler beim Senden:", error);
       }
     }
   </script>
