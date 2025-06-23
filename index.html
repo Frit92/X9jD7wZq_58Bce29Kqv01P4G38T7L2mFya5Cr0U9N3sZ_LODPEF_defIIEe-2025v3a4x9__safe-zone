@@ -12,29 +12,59 @@
       display: flex;
       flex-direction: column;
       align-items: center;
-      justify-content: center;
-      height: 100vh;
+      justify-content: flex-start;
+      min-height: 100vh;
       margin: 0;
-      padding: 1em;
+      padding: 0.5em;
       text-align: center;
+      overflow-y: auto;
     }
-    h1 { margin-bottom: 1em; font-size: 2em; }
+    h1 {
+      margin: 0.5em 0;
+      font-size: 1.8em;
+    }
     button {
       background-color: #e50914;
       color: white;
       border: none;
       padding: 1em;
-      margin: 0.5em;
-      font-size: 1.2em;
-      border-radius: 0.5em;
+      margin: 0.3em 0;
+      font-size: 1.1em;
+      border-radius: 0.4em;
       cursor: pointer;
       transition: background-color 0.2s ease;
-      width: 90%;
-      max-width: 400px;
+      width: 95%;
+      max-width: 350px;
     }
-    button:hover, button:focus { background-color: #c40810; }
-    #status { margin-top: 1em; font-size: 1em; min-height: 1.5em; }
-    @media (max-width: 600px) { h1 { font-size: 1.5em; } button { font-size: 1em; } }
+    button:hover, button:focus {
+      background-color: #c40810;
+    }
+    #status {
+      margin-top: 0.5em;
+      font-size: 0.9em;
+      min-height: 1.5em;
+    }
+    @media (max-width: 480px) {
+      h1 {
+        font-size: 1.4em;
+      }
+      button {
+        font-size: 1em;
+        padding: 0.8em;
+      }
+      #status {
+        font-size: 0.8em;
+      }
+    }
+    @media (max-width: 320px) {
+      h1 {
+        font-size: 1.2em;
+      }
+      button {
+        font-size: 0.9em;
+        padding: 0.6em;
+      }
+    }
   </style>
 
   <!-- EmailJS SDK v4 -->
@@ -42,7 +72,7 @@
   <script>
     (function() {
       emailjs.init({
-        publicKey: "E4jHB9-hSCQJ6yEUf" // Ersetze mit deiner Public Key (z.B. user_xxxxxxxxxxxxxxxxxxxxxxxxxxxx)
+        publicKey: "E4jHB9-hSCQJ6yEUf"
       });
     })();
   </script>
@@ -50,23 +80,31 @@
 
 <body>
   <h1>📣 Feedback zu Fritflix</h1>
-  <button onclick="sendFeedback('🎞️ Stream ruckelt')">🎞️ Stream ruckelt</button>
+  <button onclick="sendFeedback('🔒 Anmeldung nicht möglich')">🔒 Anmeldung nicht möglich</button>
   <button onclick="sendFeedback('⛔ Stream startet nicht')">⛔ Stream startet nicht</button>
-  <button onclick="sendFeedback('✅ Alles gut')">✅ Alles gut</button>
+  <button onclick="sendFeedback('🎞️ Stream ruckelt')">🎞️ Stream ruckelt</button>
+  <button onclick="sendFeedback('⏸️ Stream stoppt an bestimmter Stelle')">⏸️ Stream stoppt an bestimmter Stelle</button>
+  <button onclick="sendFeedback('🔇 Kein Ton vorhanden')">🔇 Kein Ton vorhanden</button>
+  <button onclick="sendFeedback('🔊≠ Ton und Bild nicht synchron')">🔊≠ Ton und Bild nicht synchron</button>
+  <button onclick="sendFeedback('🎵 Originaltonspur fehlt')">🎵 Originaltonspur fehlt</button>
+  <button onclick="sendFeedback('📜 Untertitel fehlen')">📜 Untertitel fehlen</button>
+  <button onclick="sendFeedback('📺 Bildqualität schlecht (kein HD)')">📺 Bildqualität schlecht (kein HD)</button>
+  <button onclick="sendFeedback('🚫 Falscher Film/Serie wird abgespielt')">🚫 Falscher Film/Serie wird abgespielt</button>
+  <button onclick="sendFeedback('📱 App stürzt ab')">📱 App stürzt ab</button>
   <div id="status"></div>
 
   <script>
-    async function sendFeedback(messageText) {
-      const statusDiv = document.getElementById("status");
+    async function sendFeedback(message) {
+      const statusDiv = document.getElementById('status');
       statusDiv.textContent = "⏳ Sende Feedback...";
 
       try {
         await emailjs.send("service_i3ceboq", "template_3iie047", {
-          feedback: messageText,
+          feedback: message,
           timestamp: new Date().toLocaleString("de-DE", { timeZone: "Europe/Berlin" })
         });
         statusDiv.textContent = "✅ Danke für dein Feedback!";
-        setTimeout(() => (statusDiv.textContent = ""), 3000);
+        setTimeout(() => statusDiv.textContent = "", 3000);
       } catch (error) {
         statusDiv.textContent = "❌ Feedback konnte nicht gesendet werden.";
         console.error("Fehler beim Senden:", error);
