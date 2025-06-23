@@ -46,35 +46,38 @@
 
   <script>
     async function sendFeedback(messageText) {
-      const statusDiv = document.getElementById("status");
-      statusDiv.textContent = "⏳ Sende Feedback...";
+  const statusDiv = document.getElementById("status");
+  statusDiv.textContent = "⏳ Sende Feedback...";
 
-      try {
-        const response = await fetch("https://app.formbricks.com/api/v1/management/me", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "x-api-key": "94e876acb1f8e027f1907153f270627e" // 🔁 Ersetze durch deinen echten Key
-          },
-          body: JSON.stringify({
-            surveyId: "cmc9a9x1zqnkivo013met32fi", // 🔁 Ersetze durch deine echte Survey-ID
-            data: {
-              feedback: `🚨 Nutzer-Feedback: ${messageText} 🕒 ${new Date().toLocaleString("de-DE", { timeZone: "Europe/Berlin" })}`
-            }
-          })
-        });
-
-        if (response.ok) {
-          statusDiv.textContent = "✅ Danke für dein Feedback!";
-          setTimeout(() => (statusDiv.textContent = ""), 3000);
-        } else {
-          statusDiv.textContent = "❌ Fehler beim Senden.";
+  try {
+    const response = await fetch("https://app.formbricks.com/api/v2/management/responses", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-key": "94e876acb1f8e027f1907153f270627e" // 🔁 Ersetze durch deinen echten API-Key
+      },
+      body: JSON.stringify({
+        surveyId: "cmc9a9x1zqnkivo013met32fi", // 🔁 Ersetze durch deine echte Survey-ID
+        finished: true,
+        data: {
+          feedback: `🚨 Nutzer-Feedback: ${messageText} 🕒 ${new Date().toLocaleString("de-DE", { timeZone: "Europe/Berlin" })}`
         }
-      } catch (error) {
-        statusDiv.textContent = "❌ Verbindung fehlgeschlagen.";
-        console.error(error);
-      }
+      })
+    });
+
+    if (response.ok) {
+      statusDiv.textContent = "✅ Danke für dein Feedback!";
+      setTimeout(() => (statusDiv.textContent = ""), 3000);
+    } else {
+      const errText = await response.text();
+      statusDiv.textContent = "❌ Fehler beim Senden.";
+      console.error("Fehlerantwort:", errText);
     }
+  } catch (error) {
+    statusDiv.textContent = "❌ Verbindung fehlgeschlagen.";
+    console.error(error);
+  }
+}
   </script>
 </body>
 </html>
