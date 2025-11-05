@@ -325,7 +325,7 @@
     async function runSpeedtest() {
   const btn = document.getElementById('speedtest-btn');
   setBtnState(btn, 'Läuft…', true);
-  btn.classList.remove('success','error');
+  btn.classList.remove('success', 'error');
   btn.classList.add('loading');
 
   try {
@@ -334,10 +334,9 @@
       headers: { 'X-Token': SPEEDTEST_TOKEN }
     });
 
-    // WICHTIG: NICHT throw bei res.ok!
-    const data = await res.json();
+    const data = await res.json();  // IMMER PARSE, EGAL OB OK
 
-    // Erfolg: Backend sagt success: true
+    // WICHTIG: NICHT res.ok, SONDERN data.success PRÜFEN!
     if (data.success) {
       btn.classList.remove('loading');
       btn.classList.add('success');
@@ -348,9 +347,10 @@
         loadStatus();  // SOFORT AKTUALISIEREN!
       }, 2000);
     } else {
+      // Backend sagt: success: false → Fehler
       throw new Error(data.error || 'Unbekannter Fehler');
     }
-  } catch(e) {
+  } catch (e) {
     console.error("Speedtest Fehler:", e);
     btn.classList.remove('loading');
     btn.classList.add('error');
