@@ -323,25 +323,50 @@
     }, 5000);
 
     async function runSpeedtest() {
-      const btn = document.getElementById('speedtest-btn');
-      setBtnState(btn, '⏳ Läuft…', true);
-      btn.classList.remove('success','error');
-      btn.classList.add('loading');
-      try {
-        const res = await fetchWithTimeout(`${API_BASE}/speedtest/run`, { method: 'POST', headers: { 'X-Token': SPEEDTEST_TOKEN } });
-        if (!res.ok) throw new Error('Serverfehler');
-        btn.classList.remove('loading'); btn.classList.add('success');
-        setBtnState(btn, '✅ Erfolgreich! Danke!', true);
-        setTimeout(() => { setBtnState(btn, '⏱️ Speedtest starten', false); loadStatus(); btn.classList.remove('success'); }, 2000);
-      } catch(e) {
-        btn.classList.remove('loading'); btn.classList.add('error');
-        setBtnState(btn, '❌ Fehlgeschlagen', true);
-        setTimeout(() => { setBtnState(btn, '⏱️ Speedtest starten', false); btn.classList.remove('error'); }, 2000);
-      }
-    }
+  const btn = document.getElementById('speedtest-btn');
+  setBtnState(btn, 'Läuft…', true);
+  btn.classList.remove('success','error');
+  btn.classList.add('loading');
 
+  try {
+    const res = await fetchWithTimeout(`${API_BASE}/speedtest/run`, {
+      method: 'POST',
+      headers: { 'X-Token': SPEEDTEST_TOKEN }
+    });
+
+    // WICHTIG: NICHT throw bei res.ok!
+    const data = await res.json();
+
+    // Erfolg: Backend sagt success: true
+    if (data.success) {
+      btn.classList.remove('loading');
+      btn.classList.add('success');
+      setBtnState(btn, 'Erfolgreich! Danke!', true);
+      setTimeout(() => {
+        setBtnState(btn, 'Speedtest starten', false);
+        btn.classList.remove('success');
+        loadStatus();  // SOFORT AKTUALISIEREN!
+      }, 2000);
+    } else {
+      throw new Error(data.error || 'Unbekannter Fehler');
+    }
+  } catch(e) {
+    console.error("Speedtest Fehler:", e);
+    btn.classList.remove('loading');
+    btn.classList.add('error');
+    setBtnState(btn, 'Fehlgeschlagen', true);
+    setTimeout(() => {
+      setBtnState(btn, 'Speedtest starten', false);
+      btn.classList.remove('error');
+    }, 2000);
+  }
+}
+    
     // Einheitlicher Button-State
-    function setBtnState(btn, label, disabled) { btn.innerHTML = label; btn.disabled = !!disabled; }
+    function setBtnState(btn, label, disabled) {
+  btn.innerHTML = label;
+  btn.disabled = !!disabled;
+}
 
     async function sendViaEmailJS(text) {
       return emailjs.send('service_i3ceboq', 'template_3iie047', {
