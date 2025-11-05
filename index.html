@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="de">
 <head>
@@ -5,81 +6,241 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Fritflix Feedback</title>
   <style>
-    body { font-family: Arial, sans-serif; background: #111; color: #fff; display: flex; flex-direction: column; align-items: center; padding: 1em; text-align: center; min-height: 100vh; margin: 0; }
-    h1 { font-size: 1.8em; margin: 0.5em 0; }
-    .btn-row { display: flex; align-items: center; width: 95%; max-width: 400px; justify-content: center; margin: 0.5em 0; }
-    button { background: #e50914; color: white; border: none; padding: 1em; margin: 0.2em; border-radius: 0.4em; cursor: pointer; transition: background 0.2s; font-size: 1em; box-shadow: 0 2px 4px rgba(0,0,0,0.3); }
-    button:hover { background: #f41a22; }
-    .small { background: #333; padding: 0.6em; font-size: 0.8em; width: auto; margin-left: 0.5em; }
-    #status-box { background: #222; padding: 1em; border-radius: 0.5em; margin: 1em 0; width: 95%; max-width: 400px; text-align: left; }
-    progress { width: 100%; height: 20px; margin: 0.5em 0; }
-    .high { accent-color: red; }
-    #modal { display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: #333; padding: 1.5em; border-radius: 0.5em; width: 80%; max-width: 400px; z-index: 100; }
-    #modal textarea { width: 100%; height: 100px; margin-bottom: 0.5em; background: #444; color: #fff; border: 1px solid #666; border-radius: 0.3em; padding: 0.5em; }
-    #status { margin-top: 1em; font-size: 0.9em; min-height: 1.5em; }
-    @media (max-width: 480px) { h1 { font-size: 1.4em; } button { padding: 0.8em; font-size: 0.95em; } }
+    :root {
+      --primary: #e50914;
+      --primary-hover: #f41a22;
+      --secondary: #333;
+      --text: #fff;
+      --bg: #111;
+      --box-bg: #222;
+      --border: #444;
+      --success: #28a745;
+      --error: #dc3545;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      font-family: 'Segoe UI', Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 1em;
+      text-align: center;
+      min-height: 100vh;
+      margin: 0;
+      gap: 1em;
+    }
+
+    h1 {
+      font-size: 1.8em;
+      margin: 0.5em 0;
+      font-weight: 600;
+    }
+
+    #status-box {
+      background: var(--box-bg);
+      padding: 1em;
+      border-radius: 0.5em;
+      width: 95%;
+      max-width: 400px;
+      text-align: left;
+      font-size: 0.95em;
+      line-height: 1.5;
+      border: 1px solid var(--border);
+    }
+
+    progress {
+      width: 100%;
+      height: 18px;
+      margin: 0.4em 0;
+      border-radius: 9px;
+      overflow: hidden;
+    }
+
+    progress::-webkit-progress-bar { background: #333; border-radius: 9px; }
+    progress::-webkit-progress-value { background: var(--primary); }
+    progress.high::-webkit-progress-value { background: var(--error); }
+
+    .button-container {
+      display: flex;
+      flex-direction: column;
+      gap: 0.6em;
+      width: 95%;
+      max-width: 400px;
+    }
+
+    .btn-row {
+      display: flex;
+      gap: 0.4em;
+      width: 100%;
+    }
+
+    button {
+      flex: 1;
+      min-height: 48px;
+      padding: 0.8em 0.6em;
+      font-size: 1em;
+      border: none;
+      border-radius: 0.4em;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.4em;
+    }
+
+    .feedback-btn {
+      background: var(--primary);
+      color: white;
+    }
+
+    .feedback-btn:hover { background: var(--primary-hover); }
+    .feedback-btn:disabled { background: #999; cursor: not-allowed; }
+
+    .note-btn {
+      background: var(--secondary);
+      color: white;
+      font-size: 0.9em;
+      min-width: 44px;
+    }
+
+    .note-btn:hover { background: #444; }
+
+    .speedtest-btn {
+      background: #1a73e8;
+      color: white;
+      font-weight: 600;
+      margin: 1em 0;
+      padding: 1em;
+      font-size: 1.1em;
+    }
+
+    .speedtest-btn:hover { background: #0d62c7; }
+    .speedtest-btn.loading { background: #666; }
+    .speedtest-btn.success { background: var(--success); }
+    .speedtest-btn.error { background: var(--error); }
+
+    #modal {
+      display: none;
+      position: fixed;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      background: #333;
+      padding: 1.5em;
+      border-radius: 0.5em;
+      width: 85%;
+      max-width: 400px;
+      z-index: 100;
+      border: 1px solid var(--border);
+    }
+
+    #modal h3 { margin: 0 0 0.8em; font-size: 1.2em; }
+    #modal textarea {
+      width: 100%;
+      height: 100px;
+      background: #444;
+      color: white;
+      border: 1px solid #666;
+      border-radius: 0.3em;
+      padding: 0.5em;
+      font-size: 0.95em;
+      resize: none;
+    }
+
+    #modal button {
+      margin: 0.4em 0.2em 0;
+      padding: 0.7em 1em;
+      min-height: auto;
+    }
+
+    #status {
+      margin-top: 1em;
+      font-size: 0.95em;
+      min-height: 1.5em;
+      font-weight: 500;
+    }
+
+    @media (max-width: 480px) {
+      h1 { font-size: 1.5em; }
+      button { font-size: 0.95em; padding: 0.7em 0.5em; }
+      .speedtest-btn { font-size: 1em; }
+    }
   </style>
   <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 </head>
 <body>
-  <h1>📣 Feedback zu Fritflix</h1>
+  <h1>Feedback zu Fritflix</h1>
+
   <div id="status-box">Lade Server-Status...</div>
-  <button onclick="runSpeedtest()">🚀 Speedtest starten</button>
+
+  <!-- Speedtest Button -->
+  <button id="speedtest-btn" class="speedtest-btn" onclick="runSpeedtest()">
+    Speedtest starten
+  </button>
 
   <!-- Feedback Buttons -->
-  <div class="btn-row">
-    <button onclick="sendDirect(this, '🔌❌ Server offline')" data-orig="🔌❌ Server offline">🔌❌ Server offline</button>
-    <button class="small" onclick="openModal('🔌❌ Server offline')">Mit Beschr.</button>
+  <div class="button-container">
+    <div class="btn-row">
+      <button class="feedback-btn" onclick="sendDirect(this, 'Server offline')" data-orig="Server offline">Server offline</button>
+      <button class="note-btn" onclick="openModal('Server offline')">Mit Beschr.</button>
+    </div>
+    <div class="btn-row">
+      <button class="feedback-btn" onclick="sendDirect(this, 'Anmeldung nicht möglich')" data-orig="Anmeldung nicht möglich">Anmeldung nicht möglich</button>
+      <button class="note-btn" onclick="openModal('Anmeldung nicht möglich')">Mit Beschr.</button>
+    </div>
+    <div class="btn-row">
+      <button class="feedback-btn" onclick="sendDirect(this, 'Stream startet nicht')" data-orig="Stream startet nicht">Stream startet nicht</button>
+      <button class="note-btn" onclick="openModal('Stream startet nicht')">Mit Beschr.</button>
+    </div>
+    <div class="btn-row">
+      <button class="feedback-btn" onclick="sendDirect(this, 'Stream ruckelt')" data-orig="Stream ruckelt">Stream ruckelt</button>
+      <button class="note-btn" onclick="openModal('Stream ruckelt')">Mit Beschr.</button>
+    </div>
+    <div class="btn-row">
+      <button class="feedback-btn" onclick="sendDirect(this, 'Stream stoppt an bestimmter Stelle')" data-orig="Stream stoppt an bestimmter Stelle">Stream stoppt an bestimmter Stelle</button>
+      <button class="note-btn" onclick="openModal('Stream stoppt an bestimmter Stelle')">Mit Beschr.</button>
+    </div>
+    <div class="btn-row">
+      <button class="feedback-btn" onclick="sendDirect(this, 'Kein Ton vorhanden')" data-orig="Kein Ton vorhanden">Kein Ton vorhanden</button>
+      <button class="note-btn" onclick="openModal('Kein Ton vorhanden')">Mit Beschr.</button>
+    </div>
+    <div class="btn-row">
+      <button class="feedback-btn" onclick="sendDirect(this, 'Ton und Bild nicht synchron')" data-orig="Ton und Bild nicht synchron">Ton und Bild nicht synchron</button>
+      <button class="note-btn" onclick="openModal('Ton und Bild nicht synchron')">Mit Beschr.</button>
+    </div>
+    <div class="btn-row">
+      <button class="feedback-btn" onclick="sendDirect(this, 'Originaltonspur fehlt')" data-orig="Originaltonspur fehlt">Originaltonspur fehlt</button>
+      <button class="note-btn" onclick="openModal('Originaltonspur fehlt')">Mit Beschr.</button>
+    </div>
+    <div class="btn-row">
+      <button class="feedback-btn" onclick="sendDirect(this, 'Untertitel fehlen')" data-orig="Untertitel fehlen">Untertitel fehlen</button>
+      <button class="note-btn" onclick="openModal('Untertitel fehlen')">Mit Beschr.</button>
+    </div>
+    <div class="btn-row">
+      <button class="feedback-btn" onclick="sendDirect(this, 'Untertitel nicht synchron')" data-orig="Untertitel nicht synchron">Untertitel nicht synchron</button>
+      <button class="note-btn" onclick="openModal('Untertitel nicht synchron')">Mit Beschr.</button>
+    </div>
+    <div class="btn-row">
+      <button class="feedback-btn" onclick="sendDirect(this, 'Bildqualität schlecht (kein HD)')" data-orig="Bildqualität schlecht (kein HD)">Bildqualität schlecht (kein HD)</button>
+      <button class="note-btn" onclick="openModal('Bildqualität schlecht (kein HD)')">Mit Beschr.</button>
+    </div>
+    <div class="btn-row">
+      <button class="feedback-btn" onclick="sendDirect(this, 'Falscher Film/Serie wird abgespielt')" data-orig="Falscher Film/Serie wird abgespielt">Falscher Film/Serie wird abgespielt</button>
+      <button class="note-btn" onclick="openModal('Falscher Film/Serie wird abgespielt')">Mit Beschr.</button>
+    </div>
+    <div class="btn-row">
+      <button class="feedback-btn" onclick="sendDirect(this, 'App stürzt ab')" data-orig="App stürzt ab">App stürzt ab</button>
+      <button class="note-btn" onclick="openModal('App stürzt ab')">Mit Beschr.</button>
+    </div>
   </div>
-  <div class="btn-row">
-    <button onclick="sendDirect(this, '🔒 Anmeldung nicht möglich')" data-orig="🔒 Anmeldung nicht möglich">🔒 Anmeldung nicht möglich</button>
-    <button class="small" onclick="openModal('🔒 Anmeldung nicht möglich')">Mit Beschr.</button>
-  </div>
-  <div class="btn-row">
-    <button onclick="sendDirect(this, '⛔ Stream startet nicht')" data-orig="⛔ Stream startet nicht">⛔ Stream startet nicht</button>
-    <button class="small" onclick="openModal('⛔ Stream startet nicht')">Mit Beschr.</button>
-  </div>
-  <div class="btn-row">
-    <button onclick="sendDirect(this, '🎞️ Stream ruckelt')" data-orig="🎞️ Stream ruckelt">🎞️ Stream ruckelt</button>
-    <button class="small" onclick="openModal('🎞️ Stream ruckelt')">Mit Beschr.</button>
-  </div>
-  <div class="btn-row">
-    <button onclick="sendDirect(this, '⏸️ Stream stoppt an bestimmter Stelle')" data-orig="⏸️ Stream stoppt an bestimmter Stelle">⏸️ Stream stoppt an bestimmter Stelle</button>
-    <button class="small" onclick="openModal('⏸️ Stream stoppt an bestimmter Stelle')">Mit Beschr.</button>
-  </div>
-  <div class="btn-row">
-    <button onclick="sendDirect(this, '🔇 Kein Ton vorhanden')" data-orig="🔇 Kein Ton vorhanden">🔇 Kein Ton vorhanden</button>
-    <button class="small" onclick="openModal('🔇 Kein Ton vorhanden')">Mit Beschr.</button>
-  </div>
-  <div class="btn-row">
-    <button onclick="sendDirect(this, '🔊≠ Ton und Bild nicht synchron')" data-orig="🔊≠ Ton und Bild nicht synchron">🔊≠ Ton und Bild nicht synchron</button>
-    <button class="small" onclick="openModal('🔊≠ Ton und Bild nicht synchron')">Mit Beschr.</button>
-  </div>
-  <div class="btn-row">
-    <button onclick="sendDirect(this, '🎵 Originaltonspur fehlt')" data-orig="🎵 Originaltonspur fehlt">🎵 Originaltonspur fehlt</button>
-    <button class="small" onclick="openModal('🎵 Originaltonspur fehlt')">Mit Beschr.</button>
-  </div>
-  <div class="btn-row">
-    <button onclick="sendDirect(this, '📜 Untertitel fehlen')" data-orig="📜 Untertitel fehlen">📜 Untertitel fehlen</button>
-    <button class="small" onclick="openModal('📜 Untertitel fehlen')">Mit Beschr.</button>
-  </div>
-  <div class="btn-row">
-    <button onclick="sendDirect(this, '💬≠ Untertitel nicht synchron')" data-orig="💬≠ Untertitel nicht synchron">💬≠ Untertitel nicht synchron</button>
-    <button class="small" onclick="openModal('💬≠ Untertitel nicht synchron')">Mit Beschr.</button>
-  </div>
-  <div class="btn-row">
-    <button onclick="sendDirect(this, '📺 Bildqualität schlecht (kein HD)')" data-orig="📺 Bildqualität schlecht (kein HD)">📺 Bildqualität schlecht (kein HD)</button>
-    <button class="small" onclick="openModal('📺 Bildqualität schlecht (kein HD)')">Mit Beschr.</button>
-  </div>
-  <div class="btn-row">
-    <button onclick="sendDirect(this, '🚫 Falscher Film/Serie wird abgespielt')" data-orig="🚫 Falscher Film/Serie wird abgespielt">🚫 Falscher Film/Serie wird abgespielt</button>
-    <button class="small" onclick="openModal('🚫 Falscher Film/Serie wird abgespielt')">Mit Beschr.</button>
-  </div>
-  <div class="btn-row">
-    <button onclick="sendDirect(this, '📱 App stürzt ab')" data-orig="📱 App stürzt ab">📱 App stürzt ab</button>
-    <button class="small" onclick="openModal('📱 App stürzt ab')">Mit Beschr.</button>
-  </div>
-  <button onclick="openModal('Anderes Problem', true)">❓ Anderes Problem</button>
+
+  <button class="feedback-btn" style="margin-top: 0.5em;" onclick="openModal('Anderes Problem', true)">Anderes Problem</button>
+
   <div id="status"></div>
 
   <!-- Modal -->
@@ -87,16 +248,15 @@
     <h3 id="modal-title"></h3>
     <textarea id="extra-text" placeholder="Zusätzliche Beschreibung..."></textarea>
     <br>
-    <button onclick="sendWithText()">Senden mit Text</button>
+    <button class="feedback-btn" onclick="sendWithText()">Senden mit Text</button>
     <button onclick="closeModal()">Abbrechen</button>
-    <button id="no-text-btn" onclick="sendWithoutText()">Ohne Text senden</button>
+    <button id="no-text-btn" class="feedback-btn" onclick="sendWithoutText()">Ohne Text senden</button>
   </div>
 
   <script>
     emailjs.init({ publicKey: "E4jHB9-hSCQJ6yEUf" });
-    const API_BASE = "https://fritflix.dedyn.io:33420/api";  // Dein NGINX-Proxy zum Flask
-    const SPEEDTEST_TOKEN = "fhe9wzr83ezrw7ft72636770pueu9uft";  // Dein Token!
-
+    const API_BASE = "https://fritflix.dedyn.io:33420/api";
+    const SPEEDTEST_TOKEN = "fhe9wzr83ezrw7ft72636770pueu9uft";
     let currentMsg = '', requireText = false;
 
     async function loadStatus() {
@@ -109,29 +269,52 @@
         const ulPct = Math.min((speed.upload / 36) * 100, 100);
 
         document.getElementById("status-box").innerHTML = `
-          <p>🖥️ Server: <b>${vpn.current_server || 'Unbekannt'}</b> (Load: ${vpn.server_load_percent || 0}%)</p>
-          <p>📊 Auslastung: <b>${data.load_percent || 0}%</b> (${data.streams || 0} Streams, ${data.downloads || 0} Downloads)</p>
+          <p><b>Server:</b> ${vpn.current_server || 'Unbekannt'} (Load: ${vpn.server_load_percent || 0}%)</p>
+          <p><b>Auslastung:</b> ${data.load_percent || 0}% (${data.streams || 0} Streams, ${data.downloads || 0} Downloads)</p>
           <progress value="${(data.load_percent || 0)/100}" max="1" class="${(data.load_percent || 0) > 75 ? 'high' : ''}"></progress>
-          <p>⚡ Speedtest: Ping <b>${speed.ping || 0} ms</b> | DL <b>${speed.download || 0} Mbit/s</b> | UL <b>${speed.upload || 0} Mbit/s</b></p>
-          <progress value="${dlPct/100}" max="1" title="DL: ${speed.download || 0} Mbit/s"></progress>
-          <progress value="${ulPct/100}" max="1" title="UL: ${speed.upload || 0} Mbit/s"></progress>
-          <p>🔄 ${vpn.switching_now ? 'Wechsel läuft gerade!' : `Letzter Wechsel: ${vpn.last_switch || 'Keiner'} um ${vpn.last_switch_time || ''}`}</p>
+          <p><b>Speedtest:</b> Ping <b>${speed.ping || 0} ms</b> | DL <b>${speed.download || 0} Mbit/s</b> | UL <b>${speed.upload || 0} Mbit/s</b></p>
+          <progress value="${dlPct/100}" max="1"></progress>
+          <progress value="${ulPct/100}" max="1"></progress>
+          <p><b>Wechsel:</b> ${vpn.switching_now ? 'Läuft gerade!' : `Letzter: ${vpn.last_switch || 'Keiner'} um ${vpn.last_switch_time || ''}`}</p>
         `;
       } catch (e) {
-        document.getElementById("status-box").innerHTML = `<p>❌ Fehler beim Laden: ${e.message}. Backend läuft?</p>`;
+        document.getElementById("status-box").innerHTML = `<p>Fehler: ${e.message}</p>`;
       }
     }
 
     async function runSpeedtest() {
+      const btn = document.getElementById("speedtest-btn");
+      btn.disabled = true;
+      btn.classList.remove('success', 'error');
+      btn.classList.add('loading');
+      btn.innerHTML = 'Läuft...';
+
       try {
-        await fetch(`${API_BASE}/speedtest/run`, {
+        const res = await fetch(`${API_BASE}/speedtest/run`, {
           method: 'POST',
           headers: { 'X-Token': SPEEDTEST_TOKEN }
         });
-        alert('Speedtest gestartet! Refresh in 5s...');
-        setTimeout(loadStatus, 5000);
+
+        if (res.ok) {
+          btn.classList.add('success');
+          btn.innerHTML = 'Erfolgreich! Aktualisiere...';
+          setTimeout(() => {
+            loadStatus();
+            btn.classList.remove('loading', 'success');
+            btn.innerHTML = 'Speedtest starten';
+            btn.disabled = false;
+          }, 3000);
+        } else {
+          throw new Error("Serverfehler");
+        }
       } catch (e) {
-        alert('Fehler: ' + e.message);
+        btn.classList.add('error');
+        btn.innerHTML = 'Fehlgeschlagen';
+        setTimeout(() => {
+          btn.classList.remove('loading', 'error');
+          btn.innerHTML = 'Speedtest starten';
+          btn.disabled = false;
+        }, 3000);
       }
     }
 
@@ -142,43 +325,51 @@
       document.getElementById('no-text-btn').style.display = req ? 'none' : 'block';
       document.getElementById('modal').style.display = 'block';
     }
-    function closeModal() { document.getElementById('modal').style.display = 'none'; }
+
+    function closeModal() {
+      document.getElementById('modal').style.display = 'none';
+    }
 
     async function sendEmail(text) {
       const status = document.getElementById('status');
-      status.textContent = '⏳ Sende Feedback...';
+      status.textContent = 'Sende...';
       try {
         await emailjs.send('service_i3ceboq', 'template_3iie047', {
           feedback: text,
           timestamp: new Date().toLocaleString('de-DE', { timeZone: 'Europe/Berlin' })
         });
-        status.textContent = '✅ Danke für dein Feedback!';
+        status.textContent = 'Danke für dein Feedback!';
         setTimeout(() => status.textContent = '', 3000);
       } catch (e) {
-        status.textContent = '❌ Fehler beim Senden.';
-        console.error(e);
+        status.textContent = 'Fehler beim Senden.';
         setTimeout(() => status.textContent = '', 3000);
       }
     }
 
     function sendDirect(btn, msg) {
-      const orig = btn.dataset.orig || btn.textContent;
-      btn.textContent = '⏳ Sende...'; btn.disabled = true;
+      const orig = btn.dataset.orig;
+      btn.disabled = true;
+      btn.innerHTML = 'Sende...';
       sendEmail(msg);
-      setTimeout(() => { btn.textContent = orig; btn.disabled = false; }, 3000);
+      setTimeout(() => {
+        btn.innerHTML = orig;
+        btn.disabled = false;
+      }, 3000);
     }
+
     function sendWithText() {
       const txt = document.getElementById('extra-text').value.trim();
       if (requireText && !txt) return alert('Text erforderlich!');
       sendEmail(currentMsg + (txt ? ' – ' + txt : ''));
       closeModal();
     }
+
     function sendWithoutText() {
       sendEmail(currentMsg);
       closeModal();
     }
 
-    // Auto-Refresh alle 20s
+    // Auto-Refresh
     loadStatus();
     setInterval(loadStatus, 20000);
   </script>
