@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="de">
 <head>
@@ -16,6 +15,7 @@
       --border: #444;
       --success: #28a745;
       --error: #dc3545;
+      --blue: #1a73e8;
     }
 
     * { box-sizing: border-box; }
@@ -42,61 +42,63 @@
 
     #status-box {
       background: var(--box-bg);
-      padding: 1em;
-      border-radius: 0.5em;
+      padding: 1.2em;
+      border-radius: 0.6em;
       width: 95%;
-      max-width: 400px;
+      max-width: 420px;
       text-align: left;
-      font-size: 0.95em;
-      line-height: 1.5;
+      font-size: 0.98em;
+      line-height: 1.6;
       border: 1px solid var(--border);
+      box-shadow: 0 2px 6px rgba(0,0,0,0.3);
     }
 
     progress {
       width: 100%;
-      height: 18px;
-      margin: 0.4em 0;
-      border-radius: 9px;
+      height: 20px;
+      margin: 0.5em 0;
+      border-radius: 10px;
       overflow: hidden;
     }
 
-    progress::-webkit-progress-bar { background: #333; border-radius: 9px; }
-    progress::-webkit-progress-value { background: var(--primary); }
+    progress::-webkit-progress-bar { background: #333; border-radius: 10px; }
+    progress::-webkit-progress-value { background: var(--primary); border-radius: 10px; }
     progress.high::-webkit-progress-value { background: var(--error); }
+    progress.blue::-webkit-progress-value { background: var(--blue); }
 
     .button-container {
       display: flex;
       flex-direction: column;
-      gap: 0.6em;
+      gap: 0.7em;
       width: 95%;
-      max-width: 400px;
+      max-width: 420px;
     }
 
     .btn-row {
       display: flex;
-      gap: 0.4em;
+      gap: 0.5em;
       width: 100%;
     }
 
     button {
-      flex: 1;
-      min-height: 48px;
-      padding: 0.8em 0.6em;
-      font-size: 1em;
       border: none;
-      border-radius: 0.4em;
+      border-radius: 0.5em;
       cursor: pointer;
       transition: all 0.2s ease;
       font-weight: 500;
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 0.4em;
+      gap: 0.5em;
     }
 
     .feedback-btn {
+      flex: 1;
       background: var(--primary);
       color: white;
+      font-size: 1.1em;
+      padding: 1em 0.8em;
+      min-height: 56px;
     }
 
     .feedback-btn:hover { background: var(--primary-hover); }
@@ -105,19 +107,25 @@
     .note-btn {
       background: var(--secondary);
       color: white;
-      font-size: 0.9em;
-      min-width: 44px;
+      font-size: 1.3em;
+      width: 56px;
+      min-height: 56px;
+      padding: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
 
     .note-btn:hover { background: #444; }
 
     .speedtest-btn {
-      background: #1a73e8;
+      background: var(--blue);
       color: white;
       font-weight: 600;
-      margin: 1em 0;
-      padding: 1em;
-      font-size: 1.1em;
+      margin: 1.2em 0;
+      padding: 1.1em;
+      font-size: 1.15em;
+      border-radius: 0.6em;
     }
 
     .speedtest-btn:hover { background: #0d62c7; }
@@ -131,44 +139,47 @@
       top: 50%; left: 50%;
       transform: translate(-50%, -50%);
       background: #333;
-      padding: 1.5em;
-      border-radius: 0.5em;
-      width: 85%;
-      max-width: 400px;
+      padding: 1.6em;
+      border-radius: 0.6em;
+      width: 88%;
+      max-width: 420px;
       z-index: 100;
       border: 1px solid var(--border);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.4);
     }
 
-    #modal h3 { margin: 0 0 0.8em; font-size: 1.2em; }
+    #modal h3 { margin: 0 0 0.9em; font-size: 1.25em; }
     #modal textarea {
       width: 100%;
-      height: 100px;
+      height: 110px;
       background: #444;
       color: white;
       border: 1px solid #666;
-      border-radius: 0.3em;
-      padding: 0.5em;
-      font-size: 0.95em;
+      border-radius: 0.4em;
+      padding: 0.6em;
+      font-size: 0.98em;
       resize: none;
     }
 
     #modal button {
-      margin: 0.4em 0.2em 0;
-      padding: 0.7em 1em;
+      margin: 0.5em 0.25em 0;
+      padding: 0.8em 1.2em;
       min-height: auto;
+      font-size: 0.98em;
     }
 
     #status {
       margin-top: 1em;
-      font-size: 0.95em;
-      min-height: 1.5em;
+      font-size: 0.98em;
+      min-height: 1.6em;
       font-weight: 500;
     }
 
     @media (max-width: 480px) {
       h1 { font-size: 1.5em; }
-      button { font-size: 0.95em; padding: 0.7em 0.5em; }
-      .speedtest-btn { font-size: 1em; }
+      .feedback-btn { font-size: 1em; padding: 0.9em 0.7em; }
+      .note-btn { font-size: 1.2em; width: 50px; height: 50px; }
+      .speedtest-btn { font-size: 1.05em; }
     }
   </style>
   <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
@@ -239,7 +250,7 @@
     </div>
   </div>
 
-  <button class="feedback-btn" style="margin-top: 0.5em;" onclick="openModal('Anderes Problem', true)">Anderes Problem</button>
+  <button class="feedback-btn" style="margin-top: 0.6em; padding: 1em;" onclick="openModal('Anderes Problem', true)">Anderes Problem</button>
 
   <div id="status"></div>
 
@@ -272,9 +283,11 @@
           <p><b>Server:</b> ${vpn.current_server || 'Unbekannt'} (Load: ${vpn.server_load_percent || 0}%)</p>
           <p><b>Auslastung:</b> ${data.load_percent || 0}% (${data.streams || 0} Streams, ${data.downloads || 0} Downloads)</p>
           <progress value="${(data.load_percent || 0)/100}" max="1" class="${(data.load_percent || 0) > 75 ? 'high' : ''}"></progress>
-          <p><b>Speedtest:</b> Ping <b>${speed.ping || 0} ms</b> | DL <b>${speed.download || 0} Mbit/s</b> | UL <b>${speed.upload || 0} Mbit/s</b></p>
-          <progress value="${dlPct/100}" max="1"></progress>
-          <progress value="${ulPct/100}" max="1"></progress>
+          <p><b>Speedtest:</b> Ping <b>${speed.ping || 0} ms</b></p>
+          <p><b>DL:</b> <b>${speed.download || 0} Mbit/s</b></p>
+          <progress value="${dlPct/100}" max="1" class="blue"></progress>
+          <p><b>UL:</b> <b>${speed.upload || 0} Mbit/s</b></p>
+          <progress value="${ulPct/100}" max="1" class="blue"></progress>
           <p><b>Wechsel:</b> ${vpn.switching_now ? 'Läuft gerade!' : `Letzter: ${vpn.last_switch || 'Keiner'} um ${vpn.last_switch_time || ''}`}</p>
         `;
       } catch (e) {
@@ -297,7 +310,7 @@
 
         if (res.ok) {
           btn.classList.add('success');
-          btn.innerHTML = 'Erfolgreich! Aktualisiere...';
+          btn.innerHTML = 'Erfolgreich!';
           setTimeout(() => {
             loadStatus();
             btn.classList.remove('loading', 'success');
@@ -369,7 +382,6 @@
       closeModal();
     }
 
-    // Auto-Refresh
     loadStatus();
     setInterval(loadStatus, 20000);
   </script>
