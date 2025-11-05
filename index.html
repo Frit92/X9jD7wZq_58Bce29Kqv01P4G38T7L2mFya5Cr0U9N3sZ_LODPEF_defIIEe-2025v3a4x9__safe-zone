@@ -39,64 +39,27 @@
 
     h1 { font-size: 1.8em; margin: 0.5em 0 0.2em; font-weight: 600; }
 
-    /* Immer sichtbarer Serverwechsel-Banner */
-    #switch-banner {
-      position: sticky;
-      top: 0;
-      z-index: 999;
-      width: 95%;
-      max-width: 420px;
-      display: none;
-      background: linear-gradient(90deg, var(--badge), #ffaa00);
-      color: #111;
-      border: 1px solid #00000040;
-      border-radius: 10px;
-      padding: 0.6em 0.8em;
-      box-shadow: 0 4px 10px rgba(0,0,0,0.35);
-      font-weight: 800;
-      letter-spacing: 0.3px;
-    }
+    /* Immer sichtbarer Serverwechsel-/Offline-Banner */
+    #switch-banner { position: sticky; top: 0; z-index: 999; width: 95%; max-width: 420px; display: none; border-radius: 10px; padding: 0.6em 0.8em; box-shadow: 0 4px 10px rgba(0,0,0,0.35); font-weight: 800; letter-spacing: 0.3px; border: 1px solid #00000040; }
     #switch-banner .icon { font-size: 1.25em; margin-right: 0.4em; }
+    #switch-banner.switching { background: linear-gradient(90deg, var(--badge), #ffaa00); color: #111; }
+    #switch-banner.offline { background: linear-gradient(90deg, #ff5555, #ff2222); color: #fff; border-color: #00000070; }
 
     /* Ausklappbarer Status-Block */
-    details#status-details {
-      width: 95%;
-      max-width: 420px;
-      background: var(--box-bg);
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      overflow: hidden;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.3);
-    }
-    details#status-details > summary {
-      list-style: none;
-      display: flex;
-      align-items: center;
-      gap: 0.6em;
-      padding: 0.9em 1em;
-      cursor: pointer;
-      user-select: none;
-      background: #202020;
-    }
+    details#status-details { width: 95%; max-width: 420px; background: var(--box-bg); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; box-shadow: 0 2px 6px rgba(0,0,0,0.3); }
+    details#status-details > summary { list-style: none; display: flex; align-items: center; gap: 0.6em; padding: 0.9em 1em; cursor: pointer; user-select: none; background: #202020; }
     details#status-details > summary::-webkit-details-marker { display: none; }
     .chev { transition: transform .2s ease; }
     details[open] .chev { transform: rotate(90deg); }
-
     .summary-row { display: flex; align-items: center; gap: 0.6em; width: 100%; justify-content: space-between; }
     .summary-left { display: flex; align-items: center; gap: 0.6em; font-weight: 600; }
+    .summary-meta { font-size: .85em; opacity: .8; }
     .summary-bars { display: grid; grid-template-columns: 1fr; gap: 4px; width: 48%; }
     .mini-bar { height: 8px; background: #333; border-radius: 6px; overflow: hidden; }
     .mini-bar > span { display: block; height: 100%; background: var(--primary); }
     .mini-bar.blue > span { background: var(--blue); }
 
-    #status-box {
-      padding: 1.0em 1em 1.2em;
-      text-align: left;
-      font-size: 0.98em;
-      line-height: 1.6;
-      border-top: 1px solid var(--border);
-      background: var(--box-bg);
-    }
+    #status-box { padding: 1.0em 1em 1.2em; text-align: left; font-size: 0.98em; line-height: 1.6; border-top: 1px solid var(--border); background: var(--box-bg); }
 
     progress { width: 100%; height: 16px; margin: 0.4em 0; border-radius: 10px; overflow: hidden; }
     progress::-webkit-progress-bar { background: #333; border-radius: 10px; }
@@ -123,7 +86,6 @@
     .speedtest-btn.success { background: var(--success); }
     .speedtest-btn.error { background: var(--error); }
 
-    /* Modal */
     #modal { display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: #333; padding: 1.0em 1.0em 1.2em; border-radius: 0.8em; width: 88%; max-width: 420px; z-index: 100; border: 1px solid var(--border); box-shadow: 0 4px 12px rgba(0,0,0,0.4); }
     #modal h3 { margin: 0 0 0.7em; font-size: 1.2em; }
     #modal textarea { width: 100%; height: 110px; background: #444; color: #fff; border: 1px solid #666; border-radius: 0.5em; padding: 0.6em; font-size: 0.98em; resize: none; }
@@ -143,8 +105,8 @@
 <body>
   <h1>Feedback zu Fritflix</h1>
 
-  <!-- Immer sichtbarer Serverwechsel-Banner -->
-  <div id="switch-banner"><span class="icon">❗</span><span>SERVERWECHSEL – Verbindung wird umgeschaltet…</span></div>
+  <!-- Immer sichtbarer Banner -->
+  <div id="switch-banner" class="switching"><span class="icon">❗</span><span id="switch-text">SERVERWECHSEL – Verbindung wird umgeschaltet…</span></div>
 
   <!-- Ausklappbarer Status -->
   <details id="status-details">
@@ -160,6 +122,7 @@
           <div class="mini-bar blue" title="UL"><span id="mini-ul" style="width:0%"></span></div>
         </div>
       </div>
+      <div class="summary-meta" id="summary-meta"></div>
     </summary>
     <div id="status-box">Lade Server-Status…</div>
   </details>
@@ -242,35 +205,76 @@
     emailjs.init({ publicKey: "E4jHB9-hSCQJ6yEUf" });
     const API_BASE = "https://fritflix.dedyn.io:33420/api";
     const SPEEDTEST_TOKEN = "fhe9wzr83ezrw7ft72636770pueu9uft";
-    let currentMsg = '', requireText = false;
 
-    // Helfer: Prozent zu Breite für Mini-Bars
-    function setMiniBars(loadPct, dlPct, ulPct) {
-      document.getElementById('mini-load').style.width = Math.min(loadPct,100)+'%';
-      document.getElementById('mini-dl').style.width = Math.min(dlPct,100)+'%';
-      document.getElementById('mini-ul').style.width = Math.min(ulPct,100)+'%';
+    const OFFLINE_THRESHOLD_MS = 15 * 60 * 1000; // 15 Minuten
+    const FETCH_TIMEOUT_MS = 7000; // 7s Timeout pro Request
+
+    let currentMsg = '', requireText = false;
+    let lastSuccessTs = null;     // Zeitpunkt des letzten erfolgreichen Status
+    let failSinceTs = null;       // Zeitpunkt, ab dem keine Verbindung mehr möglich war
+
+    // Utility: Fetch mit Timeout
+    function fetchWithTimeout(url, opts = {}, ms = FETCH_TIMEOUT_MS) {
+      return Promise.race([
+        fetch(url, opts),
+        new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), ms))
+      ]);
     }
 
-    async function loadStatus(){
-      try{
-        const res = await fetch(`${API_BASE}/status`);
+    // Banner steuern
+    function setBanner(mode, extraText) {
+      const banner = document.getElementById('switch-banner');
+      const text = document.getElementById('switch-text');
+      if (mode === 'hidden') { banner.style.display = 'none'; banner.classList.remove('switching','offline'); return; }
+      banner.style.display = 'block';
+      banner.classList.remove('switching','offline');
+      if (mode === 'switching') {
+        banner.classList.add('switching');
+        text.textContent = extraText || 'SERVERWECHSEL – Verbindung wird umgeschaltet…';
+      } else if (mode === 'offline') {
+        banner.classList.add('offline');
+        text.textContent = extraText || 'Server offline. Bitte Administrator kontaktieren.';
+      }
+    }
+
+    // Mini-Balken aktualisieren
+    function setMiniBars(loadPct, dlPct, ulPct) {
+      document.getElementById('mini-load').style.width = Math.min(loadPct,100)+'%';
+      document.getElementById('mini-dl').style.width   = Math.min(dlPct,100)+'%';
+      document.getElementById('mini-ul').style.width   = Math.min(ulPct,100)+'%';
+    }
+
+    function setSummaryMeta(ts) {
+      const el = document.getElementById('summary-meta');
+      if (!ts) { el.textContent = ''; return; }
+      const dt = new Date(ts);
+      el.textContent = `Letzte Aktualisierung: ${dt.toLocaleTimeString('de-DE')}`;
+    }
+
+    async function loadStatus() {
+      try {
+        const res = await fetchWithTimeout(`${API_BASE}/status`);
         const data = await res.json();
+
+        // Erfolg → Watchdog zurücksetzen
+        lastSuccessTs = Date.now();
+        failSinceTs = null;
+
         const vpn = data.vpn || {};
         const speed = vpn.last_speedtest || { ping: 0, download: 0, upload: 0 };
-
         const dlPct = Math.min((speed.download/90)*100, 100);
         const ulPct = Math.min((speed.upload/36)*100, 100);
         const loadPct = Math.min(data.load_percent || 0, 100);
 
-        // Banner Sichtbarkeit
-        const switching = !!vpn.switching_now;
-        document.getElementById('switch-banner').style.display = switching ? 'block' : 'none';
+        // Banner: wenn Backend sagt switching_now → switching, sonst verstecken
+        if (vpn.switching_now) setBanner('switching'); else setBanner('hidden');
 
-        // Summary Kopf (auch im eingeklappten Zustand sichtbar)
+        // Summary + Mini-Balken
         document.getElementById('summary-server').textContent = `Server: ${vpn.current_server || 'Unbekannt'}`;
         setMiniBars(loadPct, dlPct, ulPct);
+        setSummaryMeta(lastSuccessTs);
 
-        // Detail-Inhalt
+        // Detail-Box
         document.getElementById('status-box').innerHTML = `
           <p><b>Server:</b> ${vpn.current_server || 'Unbekannt'} (Load: ${vpn.server_load_percent || 0}%)</p>
           <p><b>Auslastung:</b> ${data.load_percent || 0}% (${data.streams || 0} Streams, ${data.downloads || 0} Downloads)</p>
@@ -280,37 +284,53 @@
           <progress value="${dlPct/100}" max="1" class="blue"></progress>
           <p><b>UL:</b> <b>${speed.upload || 0} Mbit/s</b></p>
           <progress value="${ulPct/100}" max="1" class="blue"></progress>
-          <p><b>Wechsel:</b> ${switching ? '<span style="color:#111;background:var(--badge);padding:0.15em 0.45em;border-radius:6px;font-weight:800;">Läuft gerade!</span>' : `Letzter: ${vpn.last_switch || 'Keiner'} um ${vpn.last_switch_time || ''}`}</p>
+          <p><b>Wechsel:</b> ${vpn.switching_now ? '<span style="color:#111;background:var(--badge);padding:0.15em 0.45em;border-radius:6px;font-weight:800;">Läuft gerade!</span>' : `Letzter: ${vpn.last_switch || 'Keiner'} um ${vpn.last_switch_time || ''}`}</p>
         `;
       } catch (e) {
-        document.getElementById('status-box').innerHTML = `<p>Fehler: ${e.message}</p>`;
+        // Fehlschlag → ggf. Startzeit setzen und Banner auf SWITCHING stellen
+        if (!failSinceTs) failSinceTs = Date.now();
+        setSummaryMeta(lastSuccessTs);
+
+        // Wenn noch unter 15 Minuten ohne Erfolg → SWITCHING anzeigen
+        const elapsed = Date.now() - failSinceTs;
+        if (elapsed < OFFLINE_THRESHOLD_MS) {
+          setBanner('switching', 'SERVERWECHSEL – Verbindung wird umgeschaltet…');
+          document.getElementById('status-box').innerHTML = `<p>Verbinde… (${Math.floor(elapsed/1000)}s ohne Antwort)</p>`;
+        } else {
+          setBanner('offline');
+          document.getElementById('status-box').innerHTML = `<p><b>Server offline.</b> Bitte Administrator kontaktieren.</p>`;
+        }
       }
     }
+
+    // Watchdog prüft alle 5s, ob die 15-Minuten-Schwelle überschritten ist
+    setInterval(() => {
+      if (failSinceTs) {
+        const elapsed = Date.now() - failSinceTs;
+        if (elapsed >= OFFLINE_THRESHOLD_MS) setBanner('offline');
+      }
+    }, 5000);
 
     async function runSpeedtest() {
       const btn = document.getElementById('speedtest-btn');
       setBtnState(btn, '⏳ Läuft…', true);
-      btn.classList.remove('success', 'error');
+      btn.classList.remove('success','error');
       btn.classList.add('loading');
-
       try {
-        const res = await fetch(`${API_BASE}/speedtest/run`, { method: 'POST', headers: { 'X-Token': SPEEDTEST_TOKEN } });
+        const res = await fetchWithTimeout(`${API_BASE}/speedtest/run`, { method: 'POST', headers: { 'X-Token': SPEEDTEST_TOKEN } });
         if (!res.ok) throw new Error('Serverfehler');
         btn.classList.remove('loading'); btn.classList.add('success');
         setBtnState(btn, '✅ Erfolgreich! Danke!', true);
         setTimeout(() => { setBtnState(btn, '⏱️ Speedtest starten', false); loadStatus(); btn.classList.remove('success'); }, 2000);
-      } catch (e) {
+      } catch(e) {
         btn.classList.remove('loading'); btn.classList.add('error');
         setBtnState(btn, '❌ Fehlgeschlagen', true);
         setTimeout(() => { setBtnState(btn, '⏱️ Speedtest starten', false); btn.classList.remove('error'); }, 2000);
       }
     }
 
-    // Einheitlicher Button-State (zeigt "Sende…/Danke!" im jeweiligen Button)
-    function setBtnState(btn, label, disabled) {
-      btn.innerHTML = label;
-      btn.disabled = !!disabled;
-    }
+    // Einheitlicher Button-State
+    function setBtnState(btn, label, disabled) { btn.innerHTML = label; btn.disabled = !!disabled; }
 
     async function sendViaEmailJS(text) {
       return emailjs.send('service_i3ceboq', 'template_3iie047', {
@@ -321,16 +341,10 @@
 
     // Direkt senden (Haupt-Buttons)
     async function sendDirect(btn, msg) {
-      const orig = btn.getAttribute('data-orig') || btn.innerHTML; // enthält Emojis als sichtbaren Text
+      const orig = btn.getAttribute('data-orig') || btn.innerHTML; // Emojis sind Klartext
       setBtnState(btn, '📨 Sende…', true);
-      try {
-        await sendViaEmailJS(msg);
-        setBtnState(btn, '✅ Danke für dein Feedback!', true);
-      } catch (e) {
-        setBtnState(btn, '❌ Fehler – erneut versuchen?', false);
-        return;
-      }
-      // kurze Bestätigung, dann Original zurück
+      try { await sendViaEmailJS(msg); setBtnState(btn, '✅ Danke für dein Feedback!', true); }
+      catch(e) { setBtnState(btn, '❌ Fehler – erneut versuchen?', false); return; }
       setTimeout(() => { btn.innerHTML = orig; btn.disabled = false; }, 1800);
     }
 
@@ -350,28 +364,18 @@
       const full = currentMsg + (txt ? ' – ' + txt : '');
       const orig = btnEl.innerHTML;
       setBtnState(btnEl, '📨 Sende…', true);
-      try {
-        await sendViaEmailJS(full);
-        setBtnState(btnEl, '✅ Danke für dein Feedback!', true);
-        setTimeout(() => { closeModal(); btnEl.innerHTML = orig; btnEl.disabled = false; }, 900);
-      } catch (e) {
-        setBtnState(btnEl, '❌ Fehler – erneut?', false);
-      }
+      try { await sendViaEmailJS(full); setBtnState(btnEl, '✅ Danke für dein Feedback!', true); setTimeout(() => { closeModal(); btnEl.innerHTML = orig; btnEl.disabled = false; }, 900); }
+      catch(e) { setBtnState(btnEl, '❌ Fehler – erneut?', false); }
     }
 
     async function sendWithoutText(btnEl) {
       const orig = btnEl.innerHTML;
       setBtnState(btnEl, '📨 Sende…', true);
-      try {
-        await sendViaEmailJS(currentMsg);
-        setBtnState(btnEl, '✅ Danke für dein Feedback!', true);
-        setTimeout(() => { closeModal(); btnEl.innerHTML = orig; btnEl.disabled = false; }, 900);
-      } catch (e) {
-        setBtnState(btnEl, '❌ Fehler – erneut?', false);
-      }
+      try { await sendViaEmailJS(currentMsg); setBtnState(btnEl, '✅ Danke für dein Feedback!', true); setTimeout(() => { closeModal(); btnEl.innerHTML = orig; btnEl.disabled = false; }, 900); }
+      catch(e) { setBtnState(btnEl, '❌ Fehler – erneut?', false); }
     }
 
-    // Init
+    // Init / Polling
     loadStatus();
     setInterval(loadStatus, 20000);
   </script>
