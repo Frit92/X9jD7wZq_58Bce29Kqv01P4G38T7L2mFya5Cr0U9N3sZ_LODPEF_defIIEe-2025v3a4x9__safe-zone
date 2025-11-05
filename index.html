@@ -324,13 +324,6 @@
         if (elapsed >= OFFLINE_THRESHOLD_MS) setBanner('offline');
       }
     }, 5000);
-
-function fetchWithTimeout(url, opts = {}, ms = 7000) {
-  return Promise.race([
-    fetch(url, opts),
-    new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), ms))
-  ]);
-}
     
 // kleine Helfer
 async function getStatusSafe() {
