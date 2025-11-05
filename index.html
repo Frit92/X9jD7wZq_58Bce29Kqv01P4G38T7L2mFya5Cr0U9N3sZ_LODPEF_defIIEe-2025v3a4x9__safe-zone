@@ -218,7 +218,10 @@
     const SPEEDTEST_TOKEN = "fhe9wzr83ezrw7ft72636770pueu9uft";
 
     const OFFLINE_THRESHOLD_MS = 15 * 60 * 1000; // 15 Minuten
-    const FETCH_TIMEOUT_MS = 7000; // 7s Timeout pro Request
+    const FETCH_TIMEOUT_MS = 10000; // 10s Timeout pro Request
+    const FETCH_TIMEOUT_MS_SPEEDTEST = 120000;  // /speedtest/run (2 min Puffer)
+    const SPEEDTEST_POLL_TIMEOUT_MS  = 90000;    // max. 90s auf neues Ergebnis warten
+    const SPEEDTEST_POLL_INTERVAL_MS = 2000;     // alle 2s nachsehen
 
     let currentMsg = '', requireText = false;
     let lastSuccessTs = null;     // Zeitpunkt des letzten erfolgreichen Status
@@ -322,86 +325,122 @@
       }
     }, 5000);
 
+function fetchWithTimeout(url, opts = {}, ms = 7000) {
+  return Promise.race([
+    fetch(url, opts),
+    new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), ms))
+  ]);
+}
+    
 // kleine Helfer
 async function getStatusSafe() {
-  const res = await fetchWithTimeout(`${API_BASE}/status`);
+  const res = await fetchWithTimeout(`${API_BASE}/status`, {}, FETCH_TIMEOUT_MS_STATUS);
   return res.json();
 }
+
 function getSpeedTimestamp(data) {
+  // erwartet deine /status-Struktur: data.vpn.last_speedtest.timestamp
   return data?.vpn?.last_speedtest?.timestamp || null;
 }
 
 async function runSpeedtest() {
   const btn = document.getElementById('speedtest-btn');
-  setBtnState(btn, '⏳ Läuft…', true);
+  setBtnState(btn, '⏳ Läuft… (~60 s)', true);
   btn.classList.remove('success','error');
   btn.classList.add('loading');
 
-  // Vorherigen Timestamp merken (robuster als gerundete Zahlen)
+  // 1) Vorherigen Mess-TS merken (robust gegen Rundungs-Kollisionen)
   let prevTs = null;
   try {
     const before = await getStatusSafe();
     prevTs = getSpeedTimestamp(before);
-  } catch {}
+  } catch { /* Wenn /status kurz nicht erreichbar ist, trotzdem weitermachen */ }
 
   try {
+    // 2) Speedtest triggern — mit LANGEM Timeout
     const res = await fetchWithTimeout(`${API_BASE}/speedtest/run`, {
       method: 'POST',
       headers: { 'X-Token': SPEEDTEST_TOKEN, 'Accept': 'application/json' }
-    });
+    }, FETCH_TIMEOUT_MS_SPEEDTEST);
 
-    // Versuch JSON zu lesen (falls vorhanden)
+    // 3) JSON versuchen (aber nicht erzwingen)
     let data = null;
     try {
       const ct = res.headers.get('content-type') || '';
       if (ct.includes('application/json')) data = await res.json();
     } catch { /* egal */ }
 
-    // 1) Expliziter Erfolg der API → sofort Erfolg anzeigen
+    // 4) Erfolgskriterien:
+    //    a) API sagt success:true -> sofort Erfolg
+    //    b) 2xx/202 ohne JSON -> "gestartet" und dann auf Log warten
     if (data && data.success === true) {
       btn.classList.remove('loading'); btn.classList.add('success');
       setBtnState(btn, '✅ Erfolgreich! Danke!', true);
 
-      // Status direkt + leicht verzögert nachziehen (Log erscheint evtl. später)
+      // Status nachziehen (manchmal schreibt das Log minimal verzögert)
       loadStatus();
       setTimeout(loadStatus, 3000);
-    }
-    // 2) Alternativ: 202/2xx ohne Body → „gestartet“, dann auf Timestamp warten
-    else if (res.ok || res.status === 202) {
+    } else if (res.ok || res.status === 202) {
       btn.classList.remove('loading'); btn.classList.add('success');
       setBtnState(btn, '✅ Gestartet…', true);
 
-      // Warte bis der Timestamp sich ändert (max. 30s)
-      const t0 = Date.now(), timeoutMs = 30000, pollMs = 1500;
+      // 5) Auf neues Ergebnis im /status warten (per Timestamp)
+      const t0 = Date.now();
       let seenUpdate = false;
-      while (Date.now() - t0 < timeoutMs) {
-        await new Promise(r => setTimeout(r, pollMs));
+      while (Date.now() - t0 < SPEEDTEST_POLL_TIMEOUT_MS) {
+        await new Promise(r => setTimeout(r, SPEEDTEST_POLL_INTERVAL_MS));
         try {
           const now = await getStatusSafe();
           const currTs = getSpeedTimestamp(now);
           if (currTs && currTs !== prevTs) {
             setBtnState(btn, '✅ Erfolgreich! Danke!', true);
-            loadStatus();
+            await loadStatus();
             seenUpdate = true;
+            break;
+          }
+        } catch { /* still retrying */ }
+      }
+      if (!seenUpdate) {
+        // Kein sichtbares Log, aber Start war ok → freundlich bleiben
+        setBtnState(btn, '✅ Gestartet (wird protokolliert)…', true);
+        setTimeout(loadStatus, 3000);
+      }
+    } else {
+      throw new Error(`HTTP ${res.status}`);
+    }
+  } catch (e) {
+    // 6) Timeout-Recovery: Wenn NUR der POST getimed out ist,
+    //    warten wir noch etwas aufs Log, bevor wir "Fehlgeschlagen" zeigen.
+    if (String(e.message).toLowerCase().includes('timeout')) {
+      setBtnState(btn, '✅ Gestartet… (warte auf Ergebnis)', true);
+      btn.classList.remove('loading'); btn.classList.add('success');
+
+      const t0 = Date.now();
+      let recovered = false;
+      while (Date.now() - t0 < SPEEDTEST_POLL_TIMEOUT_MS) {
+        await new Promise(r => setTimeout(r, SPEEDTEST_POLL_INTERVAL_MS));
+        try {
+          const now = await getStatusSafe();
+          const currTs = getSpeedTimestamp(now);
+          if (currTs && currTs !== prevTs) {
+            setBtnState(btn, '✅ Erfolgreich! Danke!', true);
+            await loadStatus();
+            recovered = true;
             break;
           }
         } catch {}
       }
-      if (!seenUpdate) {
-        // kein neues Log sichtbar – aber Start war ok → freundlich bleiben
-        setBtnState(btn, '✅ Gestartet (wird protokolliert)…', true);
-        setTimeout(loadStatus, 3000);
+      if (!recovered) {
+        btn.classList.add('error');
+        setBtnState(btn, '❌ Fehlgeschlagen (Timeout)', true);
       }
+    } else {
+      console.error('Speedtest Fehler:', e);
+      btn.classList.remove('loading'); btn.classList.add('error');
+      setBtnState(btn, '❌ Fehlgeschlagen', true);
     }
-    // 3) Alles andere → Fehler
-    else {
-      throw new Error(`HTTP ${res.status}`);
-    }
-  } catch (e) {
-    console.error('Speedtest Fehler:', e);
-    btn.classList.remove('loading'); btn.classList.add('error');
-    setBtnState(btn, '❌ Fehlgeschlagen', true);
   } finally {
+    // 7) Button nach kurzer Zeit zurücksetzen
     setTimeout(() => {
       setBtnState(btn, '⏱️ Speedtest starten', false);
       btn.classList.remove('success','error');
