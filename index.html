@@ -1,135 +1,186 @@
 <!DOCTYPE html>
 <html lang="de">
 <head>
-  <meta charset="UTF-8" />
+  <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Fritflix Feedback</title>
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      background-color: #111;
-      color: #fff;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: flex-start;
-      min-height: 100vh;
-      margin: 0;
-      padding: 0.5em;
-      text-align: center;
-      overflow-y: auto;
-    }
-    h1 {
-      margin: 0.5em 0;
-      font-size: 1.8em;
-    }
-    button {
-      background-color: #e50914;
-      color: white;
-      border: none;
-      padding: 1em;
-      margin: 0.5em 0;
-      font-size: 1em;
-      border-radius: 0.4em;
-      cursor: pointer;
-      transition: background-color 0.2s ease, transform 0.1s ease;
-      width: 95%;
-      max-width: 350px;
-      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
-    }
-    button:hover, button:focus {
-      background-color: #f41a22;
-      transform: translateY(-2px);
-    }
-    button:active {
-      transform: translateY(0);
-    }
-    #status {
-      margin-top: 0.8em;
-      font-size: 0.9em;
-      min-height: 1.5em;
-    }
-    @media (max-width: 480px) {
-      h1 {
-        font-size: 1.4em;
-      }
-      button {
-        font-size: 0.95em;
-        padding: 0.8em;
-        margin: 0.4em 0;
-      }
-      #status {
-        font-size: 0.85em;
-      }
-    }
-    @media (max-width: 320px) {
-      h1 {
-        font-size: 1.2em;
-      }
-      button {
-        font-size: 0.9em;
-        padding: 0.6em;
-        margin: 0.3em 0;
-      }
-      #status {
-        font-size: 0.8em;
-      }
-    }
+    body { font-family: Arial, sans-serif; background: #111; color: #fff; display: flex; flex-direction: column; align-items: center; padding: 1em; text-align: center; min-height: 100vh; margin: 0; }
+    h1 { font-size: 1.8em; margin: 0.5em 0; }
+    .btn-row { display: flex; align-items: center; width: 95%; max-width: 400px; justify-content: center; margin: 0.5em 0; }
+    button { background: #e50914; color: white; border: none; padding: 1em; margin: 0.2em; border-radius: 0.4em; cursor: pointer; transition: background 0.2s; font-size: 1em; box-shadow: 0 2px 4px rgba(0,0,0,0.3); }
+    button:hover { background: #f41a22; }
+    .small { background: #333; padding: 0.6em; font-size: 0.8em; width: auto; margin-left: 0.5em; }
+    #status-box { background: #222; padding: 1em; border-radius: 0.5em; margin: 1em 0; width: 95%; max-width: 400px; text-align: left; }
+    progress { width: 100%; height: 20px; margin: 0.5em 0; }
+    .high { accent-color: red; }
+    #modal { display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: #333; padding: 1.5em; border-radius: 0.5em; width: 80%; max-width: 400px; z-index: 100; }
+    #modal textarea { width: 100%; height: 100px; margin-bottom: 0.5em; background: #444; color: #fff; border: 1px solid #666; border-radius: 0.3em; padding: 0.5em; }
+    #status { margin-top: 1em; font-size: 0.9em; min-height: 1.5em; }
+    @media (max-width: 480px) { h1 { font-size: 1.4em; } button { padding: 0.8em; font-size: 0.95em; } }
   </style>
-
-  <!-- EmailJS SDK v4 -->
   <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
-  <script>
-    (function() {
-      emailjs.init({
-        publicKey: "E4jHB9-hSCQJ6yEUf"
-      });
-    })();
-  </script>
 </head>
-
 <body>
   <h1>📣 Feedback zu Fritflix</h1>
-  <button onclick="sendFeedback(this, '🔌❌ Server offline')">🔌❌ Server offline</button>
-  <button onclick="sendFeedback(this, '🔒 Anmeldung nicht möglich')">🔒 Anmeldung nicht möglich</button>
-  <button onclick="sendFeedback(this, '⛔ Stream startet nicht')">⛔ Stream startet nicht</button>
-  <button onclick="sendFeedback(this, '🎞️ Stream ruckelt')">🎞️ Stream ruckelt</button>
-  <button onclick="sendFeedback(this, '⏸️ Stream stoppt an bestimmter Stelle')">⏸️ Stream stoppt an bestimmter Stelle</button>
-  <button onclick="sendFeedback(this, '🔇 Kein Ton vorhanden')">🔇 Kein Ton vorhanden</button>
-  <button onclick="sendFeedback(this, '🔊≠ Ton und Bild nicht synchron')">🔊≠ Ton und Bild nicht synchron</button>
-  <button onclick="sendFeedback(this, '🎵 Originaltonspur fehlt')">🎵 Originaltonspur fehlt</button>
-  <button onclick="sendFeedback(this, '📜 Untertitel fehlen')">📜 Untertitel fehlen</button>
-  <button onclick="sendFeedback(this, '💬≠ Untertitel nicht synchron')">💬≠ Untertitel nicht synchron</button>
-  <button onclick="sendFeedback(this, '📺 Bildqualität schlecht (kein HD)')">📺 Bildqualität schlecht (kein HD)</button>
-  <button onclick="sendFeedback(this, '🚫 Falscher Film/Serie wird abgespielt')">🚫 Falscher Film/Serie wird abgespielt</button>
-  <button onclick="sendFeedback(this, '📱 App stürzt ab')">📱 App stürzt ab</button>
+  <div id="status-box">Lade Server-Status...</div>
+  <button onclick="runSpeedtest()">🚀 Speedtest starten</button>
+
+  <!-- Feedback Buttons -->
+  <div class="btn-row">
+    <button onclick="sendDirect(this, '🔌❌ Server offline')" data-orig="🔌❌ Server offline">🔌❌ Server offline</button>
+    <button class="small" onclick="openModal('🔌❌ Server offline')">Mit Beschr.</button>
+  </div>
+  <div class="btn-row">
+    <button onclick="sendDirect(this, '🔒 Anmeldung nicht möglich')" data-orig="🔒 Anmeldung nicht möglich">🔒 Anmeldung nicht möglich</button>
+    <button class="small" onclick="openModal('🔒 Anmeldung nicht möglich')">Mit Beschr.</button>
+  </div>
+  <div class="btn-row">
+    <button onclick="sendDirect(this, '⛔ Stream startet nicht')" data-orig="⛔ Stream startet nicht">⛔ Stream startet nicht</button>
+    <button class="small" onclick="openModal('⛔ Stream startet nicht')">Mit Beschr.</button>
+  </div>
+  <div class="btn-row">
+    <button onclick="sendDirect(this, '🎞️ Stream ruckelt')" data-orig="🎞️ Stream ruckelt">🎞️ Stream ruckelt</button>
+    <button class="small" onclick="openModal('🎞️ Stream ruckelt')">Mit Beschr.</button>
+  </div>
+  <div class="btn-row">
+    <button onclick="sendDirect(this, '⏸️ Stream stoppt an bestimmter Stelle')" data-orig="⏸️ Stream stoppt an bestimmter Stelle">⏸️ Stream stoppt an bestimmter Stelle</button>
+    <button class="small" onclick="openModal('⏸️ Stream stoppt an bestimmter Stelle')">Mit Beschr.</button>
+  </div>
+  <div class="btn-row">
+    <button onclick="sendDirect(this, '🔇 Kein Ton vorhanden')" data-orig="🔇 Kein Ton vorhanden">🔇 Kein Ton vorhanden</button>
+    <button class="small" onclick="openModal('🔇 Kein Ton vorhanden')">Mit Beschr.</button>
+  </div>
+  <div class="btn-row">
+    <button onclick="sendDirect(this, '🔊≠ Ton und Bild nicht synchron')" data-orig="🔊≠ Ton und Bild nicht synchron">🔊≠ Ton und Bild nicht synchron</button>
+    <button class="small" onclick="openModal('🔊≠ Ton und Bild nicht synchron')">Mit Beschr.</button>
+  </div>
+  <div class="btn-row">
+    <button onclick="sendDirect(this, '🎵 Originaltonspur fehlt')" data-orig="🎵 Originaltonspur fehlt">🎵 Originaltonspur fehlt</button>
+    <button class="small" onclick="openModal('🎵 Originaltonspur fehlt')">Mit Beschr.</button>
+  </div>
+  <div class="btn-row">
+    <button onclick="sendDirect(this, '📜 Untertitel fehlen')" data-orig="📜 Untertitel fehlen">📜 Untertitel fehlen</button>
+    <button class="small" onclick="openModal('📜 Untertitel fehlen')">Mit Beschr.</button>
+  </div>
+  <div class="btn-row">
+    <button onclick="sendDirect(this, '💬≠ Untertitel nicht synchron')" data-orig="💬≠ Untertitel nicht synchron">💬≠ Untertitel nicht synchron</button>
+    <button class="small" onclick="openModal('💬≠ Untertitel nicht synchron')">Mit Beschr.</button>
+  </div>
+  <div class="btn-row">
+    <button onclick="sendDirect(this, '📺 Bildqualität schlecht (kein HD)')" data-orig="📺 Bildqualität schlecht (kein HD)">📺 Bildqualität schlecht (kein HD)</button>
+    <button class="small" onclick="openModal('📺 Bildqualität schlecht (kein HD)')">Mit Beschr.</button>
+  </div>
+  <div class="btn-row">
+    <button onclick="sendDirect(this, '🚫 Falscher Film/Serie wird abgespielt')" data-orig="🚫 Falscher Film/Serie wird abgespielt">🚫 Falscher Film/Serie wird abgespielt</button>
+    <button class="small" onclick="openModal('🚫 Falscher Film/Serie wird abgespielt')">Mit Beschr.</button>
+  </div>
+  <div class="btn-row">
+    <button onclick="sendDirect(this, '📱 App stürzt ab')" data-orig="📱 App stürzt ab">📱 App stürzt ab</button>
+    <button class="small" onclick="openModal('📱 App stürzt ab')">Mit Beschr.</button>
+  </div>
+  <button onclick="openModal('Anderes Problem', true)">❓ Anderes Problem</button>
   <div id="status"></div>
 
-  <script>
-    async function sendFeedback(button, messageText) {
-      const originalText = button.textContent;
-      const statusDiv = document.getElementById("status");
-      button.textContent = "⏳ Sende Feedback...";
-      button.disabled = true; // Deaktiviere Button während des Sendens
+  <!-- Modal -->
+  <div id="modal">
+    <h3 id="modal-title"></h3>
+    <textarea id="extra-text" placeholder="Zusätzliche Beschreibung..."></textarea>
+    <br>
+    <button onclick="sendWithText()">Senden mit Text</button>
+    <button onclick="closeModal()">Abbrechen</button>
+    <button id="no-text-btn" onclick="sendWithoutText()">Ohne Text senden</button>
+  </div>
 
+  <script>
+    emailjs.init({ publicKey: "E4jHB9-hSCQJ6yEUf" });
+    const API_BASE = "https://fritflix.dedyn.io/api";  // Dein NGINX-Proxy zum Flask
+    const SPEEDTEST_TOKEN = "fritflix-speedtest-8f3a9c2e-1d7b-4f6a-9e1c-5d8b3a7f2e9d";  // Dein Token!
+
+    let currentMsg = '', requireText = false;
+
+    async function loadStatus() {
       try {
-        await emailjs.send("service_i3ceboq", "template_3iie047", {
-          feedback: messageText,
-          timestamp: new Date().toLocaleString("de-DE", { timeZone: "Europe/Berlin" })
-        });
-        button.textContent = "✅ Danke für dein Feedback!";
-        setTimeout(() => {
-          button.textContent = originalText;
-          button.disabled = false;
-        }, 3000);
-      } catch (error) {
-        button.textContent = originalText;
-        button.disabled = false;
-        statusDiv.textContent = "❌ Feedback konnte nicht gesendet werden.";
-        console.error("Fehler beim Senden:", error);
-        setTimeout(() => (statusDiv.textContent = ""), 3000);
+        const res = await fetch(`${API_BASE}/status`);
+        const data = await res.json();
+        const vpn = data.vpn || {};
+        const speed = vpn.last_speedtest || { ping: 0, download: 0, upload: 0 };
+        const dlPct = Math.min((speed.download / 90) * 100, 100);
+        const ulPct = Math.min((speed.upload / 36) * 100, 100);
+
+        document.getElementById("status-box").innerHTML = `
+          <p>🖥️ Server: <b>${vpn.current_server || 'Unbekannt'}</b> (Load: ${vpn.server_load_percent || 0}%)</p>
+          <p>📊 Auslastung: <b>${data.load_percent || 0}%</b> (${data.streams || 0} Streams, ${data.downloads || 0} Downloads)</p>
+          <progress value="${(data.load_percent || 0)/100}" max="1" class="${(data.load_percent || 0) > 75 ? 'high' : ''}"></progress>
+          <p>⚡ Speedtest: Ping <b>${speed.ping || 0} ms</b> | DL <b>${speed.download || 0} Mbit/s</b> | UL <b>${speed.upload || 0} Mbit/s</b></p>
+          <progress value="${dlPct/100}" max="1" title="DL: ${speed.download || 0} Mbit/s"></progress>
+          <progress value="${ulPct/100}" max="1" title="UL: ${speed.upload || 0} Mbit/s"></progress>
+          <p>🔄 ${vpn.switching_now ? 'Wechsel läuft gerade!' : `Letzter Wechsel: ${vpn.last_switch || 'Keiner'} um ${vpn.last_switch_time || ''}`}</p>
+        `;
+      } catch (e) {
+        document.getElementById("status-box").innerHTML = `<p>❌ Fehler beim Laden: ${e.message}. Backend läuft?</p>`;
       }
     }
+
+    async function runSpeedtest() {
+      try {
+        await fetch(`${API_BASE}/speedtest/run`, {
+          method: 'POST',
+          headers: { 'X-Token': SPEEDTEST_TOKEN }
+        });
+        alert('Speedtest gestartet! Refresh in 5s...');
+        setTimeout(loadStatus, 5000);
+      } catch (e) {
+        alert('Fehler: ' + e.message);
+      }
+    }
+
+    function openModal(msg, req = false) {
+      currentMsg = msg; requireText = req;
+      document.getElementById('modal-title').textContent = msg;
+      document.getElementById('extra-text').value = '';
+      document.getElementById('no-text-btn').style.display = req ? 'none' : 'block';
+      document.getElementById('modal').style.display = 'block';
+    }
+    function closeModal() { document.getElementById('modal').style.display = 'none'; }
+
+    async function sendEmail(text) {
+      const status = document.getElementById('status');
+      status.textContent = '⏳ Sende Feedback...';
+      try {
+        await emailjs.send('service_i3ceboq', 'template_3iie047', {
+          feedback: text,
+          timestamp: new Date().toLocaleString('de-DE', { timeZone: 'Europe/Berlin' })
+        });
+        status.textContent = '✅ Danke für dein Feedback!';
+        setTimeout(() => status.textContent = '', 3000);
+      } catch (e) {
+        status.textContent = '❌ Fehler beim Senden.';
+        console.error(e);
+        setTimeout(() => status.textContent = '', 3000);
+      }
+    }
+
+    function sendDirect(btn, msg) {
+      const orig = btn.dataset.orig || btn.textContent;
+      btn.textContent = '⏳ Sende...'; btn.disabled = true;
+      sendEmail(msg);
+      setTimeout(() => { btn.textContent = orig; btn.disabled = false; }, 3000);
+    }
+    function sendWithText() {
+      const txt = document.getElementById('extra-text').value.trim();
+      if (requireText && !txt) return alert('Text erforderlich!');
+      sendEmail(currentMsg + (txt ? ' – ' + txt : ''));
+      closeModal();
+    }
+    function sendWithoutText() {
+      sendEmail(currentMsg);
+      closeModal();
+    }
+
+    // Auto-Refresh alle 20s
+    loadStatus();
+    setInterval(loadStatus, 20000);
   </script>
 </body>
 </html>
