@@ -168,6 +168,26 @@
       font-size: 0.98em;
     }
 
+    #modal .modal-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6em;
+  margin-top: 1em;
+  align-items: center;
+}
+
+#modal .modal-buttons .main-row {
+  display: flex;
+  gap: 0.5em;
+  width: 100%;
+  justify-content: center;
+}
+
+#modal .modal-buttons .main-row button {
+  flex: 1;
+  max-width: 180px;
+}
+
     #status {
       margin-top: 1em;
       font-size: 0.98em;
@@ -259,9 +279,13 @@
     <h3 id="modal-title"></h3>
     <textarea id="extra-text" placeholder="Zusätzliche Beschreibung..."></textarea>
     <br>
+    <div class="modal-buttons">
+  <div class="main-row">
     <button class="feedback-btn" onclick="sendWithText()">Senden mit Text</button>
-    <button class="feedback-btn" style="background: #555;" onclick="closeModal()">Abbrechen</button>
-    <button id="no-text-btn" class="feedback-btn" onclick="sendWithoutText()">Ohne Text senden</button>
+    <button class="feedback-btn" style="background: #666;" onclick="closeModal()">Abbrechen</button>
+  </div>
+  <button id="no-text-btn" class="feedback-btn" onclick="sendWithoutText()">Ohne Text senden</button>
+</div>
   </div>
 
   <script>
