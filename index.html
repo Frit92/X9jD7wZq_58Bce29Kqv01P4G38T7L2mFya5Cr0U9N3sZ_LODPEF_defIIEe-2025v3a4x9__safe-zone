@@ -322,11 +322,34 @@
       }
     }, 5000);
 
-    async function runSpeedtest() {
+// kleine Helfer
+async function getStatusSafe() {
+  const res = await fetchWithTimeout(`${API_BASE}/status`);
+  return res.json();
+}
+function speedKey(s) {
+  if (!s) return '0|0|0';
+  const p = Number(s.ping||0), d = Number(s.download||0), u = Number(s.upload||0);
+  return `${Math.round(p)}|${Math.round(d)}|${Math.round(u)}`;
+}
+function isValidSpeed(s) {
+  if (!s) return false;
+  const p = Number(s.ping||0), d = Number(s.download||0), u = Number(s.upload||0);
+  return p > 0 && d > 0 && u > 0; // ggf. Schwellen anpassen
+}
+
+// STRIKT: Erfolg nur bei neuem, validem Messwert
+async function runSpeedtest() {
   const btn = document.getElementById('speedtest-btn');
-  setBtnState(btn, 'Läuft…', true);
-  btn.classList.remove('success', 'error');
-  btn.classList.add('loading');
+  setBtnState(btn, '⏳ Läuft…', true);
+  btn.classList.remove('success','error'); btn.classList.add('loading');
+
+  // vorherigen Messwert merken
+  let prevKey = '0|0|0';
+  try {
+    const before = await getStatusSafe();
+    prevKey = speedKey(before?.vpn?.last_speedtest);
+  } catch {}
 
   try {
     const res = await fetchWithTimeout(`${API_BASE}/speedtest/run`, {
@@ -334,30 +357,48 @@
       headers: { 'X-Token': SPEEDTEST_TOKEN }
     });
 
-    const data = await res.json();  // IMMER PARSE, EGAL OB OK
-
-    // WICHTIG: NICHT res.ok, SONDERN data.success PRÜFEN!
-    if (data.success) {
-      btn.classList.remove('loading');
-      btn.classList.add('success');
-      setBtnState(btn, 'Erfolgreich! Danke!', true);
-      setTimeout(() => {
-        setBtnState(btn, 'Speedtest starten', false);
-        btn.classList.remove('success');
-        loadStatus();  // SOFORT AKTUALISIEREN!
-      }, 2000);
-    } else {
-      // Backend sagt: success: false → Fehler
-      throw new Error(data.error || 'Unbekannter Fehler');
+    if (!res.ok && res.status !== 202) {
+      throw new Error(`HTTP ${res.status}`);
     }
-  } catch (e) {
-    console.error("Speedtest Fehler:", e);
+
+    // Nur „gestartet“ anzeigen – noch kein Erfolg
     btn.classList.remove('loading');
-    btn.classList.add('error');
-    setBtnState(btn, 'Fehlgeschlagen', true);
+    setBtnState(btn, '✅ Gestartet…', true);
+    btn.classList.add('success');
+
+    // auf neues, valides Ergebnis warten (z. B. 25s)
+    const t0 = Date.now(), timeoutMs = 25000, poll = 1500;
+    let updated = false;
+    while (Date.now() - t0 < timeoutMs) {
+      await new Promise(r => setTimeout(r, poll));
+      try {
+        const data = await getStatusSafe();
+        const curr = data?.vpn?.last_speedtest;
+        const currKey = speedKey(curr);
+        if (currKey !== prevKey && isValidSpeed(curr)) {
+          // jetzt ist es wirklich erfolgreich
+          setBtnState(btn, '✅ Erfolgreich! Danke!', true);
+          await loadStatus();
+          updated = true;
+          break;
+        }
+      } catch {}
+    }
+
+    if (!updated) {
+      // kein neues Ergebnis gesehen → als Fehler werten
+      btn.classList.remove('success'); btn.classList.add('error');
+      setBtnState(btn, '❌ Fehlgeschlagen (kein Ergebnis)', true);
+    }
+
+  } catch (e) {
+    console.error('Speedtest Fehler:', e);
+    btn.classList.remove('loading'); btn.classList.add('error');
+    setBtnState(btn, '❌ Fehlgeschlagen', true);
+  } finally {
     setTimeout(() => {
-      setBtnState(btn, 'Speedtest starten', false);
-      btn.classList.remove('error');
+      setBtnState(btn, '⏱️ Speedtest starten', false);
+      btn.classList.remove('success','error');
     }, 2000);
   }
 }
