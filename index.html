@@ -511,19 +511,16 @@
           const internetOK = await probeInternetOK();
           let extra = '';
           if (!internetOK) {
-            extra = `<p>📡 Hinweis: Deine Internetverbindung scheint aktuell gestört.</p>`;
+            extra = `<p>Hinweis: Deine Internetverbindung scheint aktuell gestört.</p>`;
           } else {
-            // Hier IP-Check hinzufügen
             const loc = await probeLocation();
-            let hint = 'Server von deinem Standort aus evtl. nicht erreichbar';
-            if (loc) {
-              if (loc.vpn) hint += ' (VPN erkannt?)';
-              if (loc.geoBlocked) hint += ' (Geo-Block möglich?)';
-              hint += ` – Ort: ${loc.city}, ${loc.country}`;
-            } else {
-              hint += ' (VPN/Geo-Block?)';
+            if (loc && !loc.allowed) {
+              extra = `<p><strong>Zugriff nur aus Deutschland oder Spanien möglich.</strong> Dein Standort: ${loc.city}, ${loc.country}${loc.vpn ? ' (VPN erkannt)' : ''}.</p>`;
             }
-            extra = `<p>🌐 Hinweis: ${hint}.</p>`;
+            else if (loc && loc.vpn) {
+              extra = `<p>Hinweis: Möglicherweise nutzt du ein VPN – Verbindung könnte eingeschränkt sein.</p>`;
+            }
+            // Bei DE/ES ohne VPN → KEIN Hinweis
           }
           const base = isOffline
             ? `<p><b>Server offline.</b> Bitte Administrator kontaktieren.</p>`
@@ -532,7 +529,7 @@
           if (!internetOK) {
             speedBtn.innerHTML = `Speedtest<br><small>Internet gestört</small>`;
           } else {
-            speedBtn.innerHTML = `Speedtest<br><small>Server nicht erreichbar (VPN/Geo?)</small>`;
+            speedBtn.innerHTML = `Speedtest<br><small>Server nicht erreichbar</small>`;
           }
           document.getElementById('status-box').innerHTML = base + extra;
         })();
