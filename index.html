@@ -1,13 +1,3 @@
-// ... nach dem Parsen von data/vpn
-const switching = !!vpn.switching_now;
-
-// Summary-Label:
-const summaryEl = document.getElementById('summary-server');
-if (switching) {
-  summaryEl.textContent = 'Server: Wechsel läuft…';
-} else {
-  summaryEl.textContent = `Server: ${vpn.current_server || 'Unbekannt'}`;
-}
 <!DOCTYPE html>
 <html lang="de">
 <head>
