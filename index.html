@@ -368,6 +368,27 @@
       const n = v == null ? null : Number(v);
       return Number.isFinite(n) ? n : null;
     }
+    // Neue Funktion: IP-basierte Location-Check für Geo/VPN
+    async function probeLocation(timeoutMs = 5000) {
+      try {
+        const res = await fetch('https://ipapi.co/json/', { signal: AbortSignal.timeout(timeoutMs) });
+        if (!res.ok) return null;
+        const data = await res.json();
+        const country = data.country_code || 'Unbekannt';
+        const isAllowed = ['DE', 'ES'].includes(country); // Nur Deutschland und Spanien erlaubt
+        const isVPN = data.org?.toLowerCase().includes('vpn') || data.hosting || false;
+
+        return {
+          city: data.city || 'Unbekannt',
+          country: country,
+          allowed: isAllowed,
+          vpn: isVPN
+        };
+      } catch {
+        return null;
+      }
+    }
+    
     async function probeInternetOK(timeoutMs = 4000) {
       const ctrl = new AbortController();
       const t = setTimeout(() => ctrl.abort(), timeoutMs);
@@ -492,7 +513,17 @@
           if (!internetOK) {
             extra = `<p>📡 Hinweis: Deine Internetverbindung scheint aktuell gestört.</p>`;
           } else {
-            extra = `<p>🌐 Hinweis: Server von deinem Standort aus evtl. nicht erreichbar (VPN/Geo-Block?).</p>`;
+            // Hier IP-Check hinzufügen
+            const loc = await probeLocation();
+            let hint = 'Server von deinem Standort aus evtl. nicht erreichbar';
+            if (loc) {
+              if (loc.vpn) hint += ' (VPN erkannt?)';
+              if (loc.geoBlocked) hint += ' (Geo-Block möglich?)';
+              hint += ` – Ort: ${loc.city}, ${loc.country}`;
+            } else {
+              hint += ' (VPN/Geo-Block?)';
+            }
+            extra = `<p>🌐 Hinweis: ${hint}.</p>`;
           }
           const base = isOffline
             ? `<p><b>Server offline.</b> Bitte Administrator kontaktieren.</p>`
@@ -501,7 +532,7 @@
           if (!internetOK) {
             speedBtn.innerHTML = `Speedtest<br><small>Internet gestört</small>`;
           } else {
-            speedBtn.innerHTML = `Speedtest<br><small>Server nicht erreichbar (VPN?)</small>`;
+            speedBtn.innerHTML = `Speedtest<br><small>Server nicht erreichbar (VPN/Geo?)</small>`;
           }
           document.getElementById('status-box').innerHTML = base + extra;
         })();
