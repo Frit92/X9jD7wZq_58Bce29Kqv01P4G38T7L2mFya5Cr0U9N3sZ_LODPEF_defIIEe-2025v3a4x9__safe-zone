@@ -1,3 +1,4 @@
+```html
 <!DOCTYPE html>
 <html lang="de">
 <head>
@@ -20,9 +21,7 @@
       --row-alt2: #212121;
       --badge: #ffcc00;
     }
-
     * { box-sizing: border-box; }
-
     body {
       font-family: 'Segoe UI', Arial, sans-serif;
       background: var(--bg);
@@ -36,15 +35,12 @@
       margin: 0;
       gap: 1em;
     }
-
     h1 { font-size: 1.8em; margin: 0.5em 0 0.2em; font-weight: 600; }
-
     /* Immer sichtbarer Serverwechsel-/Offline-Banner */
     #switch-banner { position: sticky; top: 0; z-index: 999; width: 95%; max-width: 420px; display: none; border-radius: 10px; padding: 0.6em 0.8em; box-shadow: 0 4px 10px rgba(0,0,0,0.35); font-weight: 800; letter-spacing: 0.3px; border: 1px solid #00000040; }
     #switch-banner .icon { font-size: 1.25em; margin-right: 0.4em; }
     #switch-banner.switching { background: linear-gradient(90deg, var(--badge), #ffaa00); color: #111; }
     #switch-banner.offline { background: linear-gradient(90deg, #ff5555, #ff2222); color: #fff; border-color: #00000070; }
-
     /* Ausklappbarer Status-Block */
     details#status-details { width: 95%; max-width: 420px; background: var(--box-bg); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; box-shadow: 0 2px 6px rgba(0,0,0,0.3); }
     details#status-details > summary { list-style: none; display: flex; align-items: center; gap: 0.6em; padding: 0.9em 1em; cursor: pointer; user-select: none; background: #202020; }
@@ -58,34 +54,27 @@
     .mini-bar { height: 8px; background: #333; border-radius: 6px; overflow: hidden; }
     .mini-bar > span { display: block; height: 100%; background: var(--primary); }
     .mini-bar.blue > span { background: var(--blue); }
-
     #status-box { padding: 1.0em 1em 1.2em; text-align: left; font-size: 0.98em; line-height: 1.6; border-top: 1px solid var(--border); background: var(--box-bg); }
-
     progress { width: 100%; height: 16px; margin: 0.4em 0; border-radius: 10px; overflow: hidden; }
     progress::-webkit-progress-bar { background: #333; border-radius: 10px; }
     progress::-webkit-progress-value { background: var(--primary); border-radius: 10px; }
     progress.high::-webkit-progress-value { background: var(--error); }
     progress.blue::-webkit-progress-value { background: var(--blue); }
-
     .button-container { display: flex; flex-direction: column; gap: 0.7em; width: 95%; max-width: 420px; }
     .btn-row { display: flex; gap: 0.5em; width: 100%; padding: 0.25em; border-radius: 10px; }
     .btn-row:nth-child(odd) { background: var(--row-alt); }
     .btn-row:nth-child(even) { background: var(--row-alt2); }
-
     button { border: none; border-radius: 0.6em; cursor: pointer; transition: all 0.2s ease; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 0.55em; }
     .feedback-btn { flex: 1; background: var(--primary); color: #fff; font-size: 1.05em; padding: 0.95em 0.8em; min-height: 54px; }
     .feedback-btn:hover { background: var(--primary-hover); }
     .feedback-btn:disabled { background: #666; cursor: not-allowed; }
-
     .note-btn { background: var(--secondary); color: #fff; font-size: 1.25em; width: 54px; min-height: 54px; padding: 0; display: flex; align-items: center; justify-content: center; }
     .note-btn:hover { background: #444; }
-
     .speedtest-btn { background: var(--blue); color: #fff; font-weight: 700; margin: 0.2em 0 0.8em; padding: 1.0em; font-size: 1.05em; border-radius: 0.6em; width: 95%; max-width: 420px; }
     .speedtest-btn:hover { background: #0d62c7; }
     .speedtest-btn.loading { background: #666; }
     .speedtest-btn.success { background: var(--success); }
     .speedtest-btn.error { background: var(--error); }
-
     #modal { display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: #333; padding: 1.0em 1.0em 1.2em; border-radius: 0.8em; width: 88%; max-width: 420px; z-index: 100; border: 1px solid var(--border); box-shadow: 0 4px 12px rgba(0,0,0,0.4); }
     #modal h3 { margin: 0 0 0.7em; font-size: 1.2em; }
     #modal textarea { width: 100%; height: 110px; background: #444; color: #fff; border: 1px solid #666; border-radius: 0.5em; padding: 0.6em; font-size: 0.98em; resize: none; }
@@ -98,7 +87,6 @@
 .subtle-btn:hover { background: #353535; color: #ffffff; }
     #modal .main-row { display: flex; gap: 0.5em; width: 100%; justify-content: center; }
     #modal .main-row button { flex: 1; max-width: none; }
-
     @media (max-width: 480px) {
       h1 { font-size: 1.5em; }
       .feedback-btn { font-size: 1em; padding: 0.9em 0.7em; min-height: 50px; }
@@ -110,10 +98,8 @@
 </head>
 <body>
   <h1>Feedback zu Fritflix</h1>
-
   <!-- Immer sichtbarer Banner -->
   <div id="switch-banner"><span class="icon">❗</span><span id="switch-text">SERVERWECHSEL – Verbindung wird umgeschaltet…</span></div>
-
   <!-- Ausklappbarer Status -->
   <details id="status-details">
     <summary>
@@ -132,10 +118,8 @@
     </summary>
     <div id="status-box">Lade Server-Status…</div>
   </details>
-
   <!-- Speedtest Button -->
   <button id="speedtest-btn" class="speedtest-btn" onclick="runSpeedtest()">⏱️ Speedtest starten</button>
-
   <!-- Feedback Buttons -->
   <div class="button-container">
     <div class="btn-row">
@@ -191,9 +175,7 @@
       <button class="note-btn" onclick="openModal('App stürzt ab')">📝</button>
     </div>
   </div>
-
   <button class="feedback-btn" style="margin-top:0.6em;padding:1em;width:95%;max-width:420px;" onclick="openModal('Anderes Problem', true)">➕ Anderes Problem</button>
-
   <!-- Modal -->
   <div id="modal">
     <h3 id="modal-title"></h3>
@@ -208,23 +190,54 @@
       </div>
     </div>
   </div>
-
   <script>
     emailjs.init({ publicKey: "E4jHB9-hSCQJ6yEUf" });
     const API_BASE = "https://fritflix.dedyn.io:33420/api";
     const SPEEDTEST_TOKEN = "fhe9wzr83ezrw7ft72636770pueu9uft";
-
     const OFFLINE_THRESHOLD_MS = 15 * 60 * 1000; // 15 Minuten
     const FETCH_TIMEOUT_MS = 10000; // 10s Timeout pro Request
-    const FETCH_TIMEOUT_MS_SPEEDTEST = 120000;  // /speedtest/run (2 min Puffer)
-    const SPEEDTEST_POLL_TIMEOUT_MS  = 90000;    // max. 90s auf neues Ergebnis warten
-    const SPEEDTEST_POLL_INTERVAL_MS = 2000;     // alle 2s nachsehen
+    const FETCH_TIMEOUT_MS_SPEEDTEST = 120000; // /speedtest/run (2 min Puffer)
+    const SPEEDTEST_POLL_TIMEOUT_MS = 90000; // max. 90s auf neues Ergebnis warten
+    const SPEEDTEST_POLL_INTERVAL_MS = 2000; // alle 2s nachsehen
     const FETCH_TIMEOUT_MS_STATUS = 10000;
-
+    // Ablaufzeit (24h) für lokale Offlinestände
+    const MAX_MEMORY_AGE_MS = 24 * 60 * 60 * 1000;
+    // Keys im localStorage
+    const LS_LAST_SUCCESS = 'ff_last_success_ts';
+    const LS_FAIL_SINCE = 'ff_fail_since_ts';
+    function lsNum(key) {
+      const v = localStorage.getItem(key);
+      const n = v == null ? null : Number(v);
+      return Number.isFinite(n) ? n : null;
+    }
+    // sehr leichte Internet-Probe (liefert "ok" auch ohne CORS Header)
+    async function probeInternetOK(timeoutMs = 4000) {
+      const ctrl = new AbortController();
+      const t = setTimeout(() => ctrl.abort(), timeoutMs);
+      try {
+        // gstatic 204 ist ideal für Connectivity-Checks
+        await fetch('https://www.gstatic.com/generate_204', { mode: 'no-cors', signal: ctrl.signal });
+        clearTimeout(t);
+        return true; // Request ging raus → Internet vermutlich OK
+      } catch {
+        clearTimeout(t);
+        return false; // nix erreicht → Internet evtl. down
+      }
+    }
     let currentMsg = '', requireText = false;
-    let lastSuccessTs = null;     // Zeitpunkt des letzten erfolgreichen Status
-    let failSinceTs = null;       // Zeitpunkt, ab dem keine Verbindung mehr möglich war
-
+    let lastSuccessTs = null; // Zeitpunkt des letzten erfolgreichen Status
+    let failSinceTs = null; // Zeitpunkt, ab dem keine Verbindung mehr möglich war
+    (function initPersistedState(){
+      const persistedFail = lsNum(LS_FAIL_SINCE);
+      const persistedOk = lsNum(LS_LAST_SUCCESS);
+      // Zu alte Fail-Infos verwerfen (24h)
+      if (persistedFail && (Date.now() - persistedFail) <= MAX_MEMORY_AGE_MS) {
+        failSinceTs = persistedFail;
+      } else {
+        localStorage.removeItem(LS_FAIL_SINCE);
+      }
+      if (persistedOk) lastSuccessTs = persistedOk;
+    })();
     // Utility: Fetch mit Timeout
     function fetchWithTimeout(url, opts = {}, ms = FETCH_TIMEOUT_MS) {
       return Promise.race([
@@ -232,7 +245,6 @@
         new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), ms))
       ]);
     }
-
     // Banner steuern
     function setBanner(mode, extraText) {
       const banner = document.getElementById('switch-banner');
@@ -248,49 +260,43 @@
         text.textContent = extraText || 'Server offline. Bitte Administrator kontaktieren.';
       }
     }
-
     // Mini-Balken aktualisieren
     function setMiniBars(loadPct, dlPct, ulPct) {
       document.getElementById('mini-load').style.width = Math.min(loadPct,100)+'%';
-      document.getElementById('mini-dl').style.width   = Math.min(dlPct,100)+'%';
-      document.getElementById('mini-ul').style.width   = Math.min(ulPct,100)+'%';
+      document.getElementById('mini-dl').style.width = Math.min(dlPct,100)+'%';
+      document.getElementById('mini-ul').style.width = Math.min(ulPct,100)+'%';
     }
-
     function setSummaryMeta(ts) {
       const el = document.getElementById('summary-meta');
       if (!ts) { el.textContent = ''; return; }
       const dt = new Date(ts);
       el.textContent = `Letzte Aktualisierung: ${dt.toLocaleTimeString('de-DE')}`;
     }
-
  async function loadStatus() {
   try {
     const res = await fetchWithTimeout(`${API_BASE}/status`);
     const data = await res.json();
-
     lastSuccessTs = Date.now();
     failSinceTs = null;
-
+    // Erfolg persistieren + evtl. Fehlerzustand zurücksetzen
+    localStorage.setItem(LS_LAST_SUCCESS, String(lastSuccessTs));
+    localStorage.removeItem(LS_FAIL_SINCE);
     const vpn = data.vpn || {};
     const switching = !!vpn.switching_now;
     const speed = vpn.last_speedtest || { ping: 0, download: 0, upload: 0 };
     const dlPct = Math.min((speed.download/90)*100, 100);
     const ulPct = Math.min((speed.upload/36)*100, 100);
     const loadPct = Math.min(data.load_percent || 0, 100);
-
     // Summary-Label nur HIER setzen (nicht später nochmal überschreiben)
     const summaryEl = document.getElementById('summary-server');
     summaryEl.textContent = switching
       ? 'Server: Wechsel läuft…'
       : `Server: ${vpn.current_server || 'Unbekannt'}`;
-
     // Banner
     if (switching) setBanner('switching'); else setBanner('hidden');
-
     // Mini-Balken + Meta
     setMiniBars(loadPct, dlPct, ulPct);
     setSummaryMeta(lastSuccessTs);
-
     // Detail-Box
     document.getElementById('status-box').innerHTML = `
       <p><b>Server:</b> ${vpn.current_server || 'Unbekannt'} (Load: ${vpn.server_load_percent || 0}%)</p>
@@ -306,25 +312,48 @@
         : `Letzter: ${vpn.last_switch || 'Keiner'} um ${vpn.last_switch_time || ''}`}</p>
     `;
   } catch (e) {
-    if (!failSinceTs) failSinceTs = Date.now();
-    setSummaryMeta(lastSuccessTs);
-
-    // Summary oben neutralisieren
-    document.getElementById('summary-server').textContent = 'Server: (unbekannt)';
-
-    const elapsed = Date.now() - failSinceTs;
-    if (elapsed < OFFLINE_THRESHOLD_MS) {
-      setBanner('switching', 'SERVERWECHSEL – Verbindung wird umgeschaltet…');
-      document.getElementById('status-box').innerHTML =
-        `<p>Verbinde… (${Math.floor(elapsed/1000)}s ohne Antwort)</p>`;
-    } else {
-      setBanner('offline');
-      document.getElementById('status-box').innerHTML =
-        `<p><b>Server offline.</b> Bitte Administrator kontaktieren.</p>`;
+    console.warn("Status nicht abrufbar:", e);
+    // 1) Start/Übernahme des Fail-Timers (persistiert)
+    if (!failSinceTs) {
+      const persistedFail = lsNum(LS_FAIL_SINCE);
+      // Falls zu alt → verwerfen, sonst nutzen, sonst jetzt starten
+      if (persistedFail && (Date.now() - persistedFail) <= MAX_MEMORY_AGE_MS) {
+        failSinceTs = persistedFail;
+      } else {
+        failSinceTs = Date.now();
+      }
     }
+    localStorage.setItem(LS_FAIL_SINCE, String(failSinceTs));
+    // 2) Metazeile mit letztem bekannten Erfolg (falls vorhanden)
+    const lastSuccessPersisted = lsNum(LS_LAST_SUCCESS);
+    setSummaryMeta(lastSuccessPersisted || lastSuccessTs);
+    // 3) Summary oben neutralisieren
+    document.getElementById('summary-server').textContent = 'Server: (unbekannt)';
+    // 4) GELB vs. ROT anhand persistiertem failSince entscheiden
+    const elapsed = Date.now() - failSinceTs;
+    const isOffline = elapsed >= OFFLINE_THRESHOLD_MS;
+    if (isOffline) {
+      setBanner('offline', 'Server offline – bitte Administrator kontaktieren.');
+    } else {
+      setBanner('switching', 'SERVERWECHSEL – Verbindung wird umgeschaltet…');
+    }
+    // 5) Netz-/Geo-Probe für klarere Nutzerhinweise
+    (async () => {
+      const internetOK = await probeInternetOK();
+      let extra = '';
+      if (!internetOK) {
+        extra = `<p>📡 Hinweis: Deine Internetverbindung scheint aktuell gestört.</p>`;
+      } else {
+        extra = `<p>🌐 Hinweis: Server von deinem Standort aus evtl. nicht erreichbar (VPN/Geo-Block?).</p>`;
+      }
+      const base = isOffline
+        ? `<p><b>Server offline.</b> Bitte Administrator kontaktieren.</p>`
+        : `<p>Verbinde… (${Math.floor(elapsed/1000)} s ohne Antwort)</p>`;
+      document.getElementById('status-box').innerHTML = base + extra;
+    })();
   }
 }
-    
+   
     // Watchdog prüft alle 5s, ob die 15-Minuten-Schwelle überschritten ist
     setInterval(() => {
       if (failSinceTs) {
@@ -332,59 +361,51 @@
         if (elapsed >= OFFLINE_THRESHOLD_MS) setBanner('offline');
       }
     }, 5000);
-    
+   
 // kleine Helfer
 async function getStatusSafe() {
   const res = await fetchWithTimeout(`${API_BASE}/status`, {}, FETCH_TIMEOUT_MS_STATUS);
   return res.json();
 }
-
 function getSpeedTimestamp(data) {
   // erwartet deine /status-Struktur: data.vpn.last_speedtest.timestamp
   return data?.vpn?.last_speedtest?.timestamp || null;
 }
-
 async function runSpeedtest() {
   const btn = document.getElementById('speedtest-btn');
   setBtnState(btn, '⏳ Läuft… (~60 s)', true);
   btn.classList.remove('success','error');
   btn.classList.add('loading');
-
   // 1) Vorherigen Mess-TS merken (robust gegen Rundungs-Kollisionen)
   let prevTs = null;
   try {
     const before = await getStatusSafe();
     prevTs = getSpeedTimestamp(before);
   } catch { /* Wenn /status kurz nicht erreichbar ist, trotzdem weitermachen */ }
-
   try {
     // 2) Speedtest triggern — mit LANGEM Timeout
     const res = await fetchWithTimeout(`${API_BASE}/speedtest/run`, {
       method: 'POST',
       headers: { 'X-Token': SPEEDTEST_TOKEN, 'Accept': 'application/json' }
     }, FETCH_TIMEOUT_MS_SPEEDTEST);
-
     // 3) JSON versuchen (aber nicht erzwingen)
     let data = null;
     try {
       const ct = res.headers.get('content-type') || '';
       if (ct.includes('application/json')) data = await res.json();
     } catch { /* egal */ }
-
     // 4) Erfolgskriterien:
-    //    a) API sagt success:true -> sofort Erfolg
-    //    b) 2xx/202 ohne JSON -> "gestartet" und dann auf Log warten
+    // a) API sagt success:true -> sofort Erfolg
+    // b) 2xx/202 ohne JSON -> "gestartet" und dann auf Log warten
     if (data && data.success === true) {
       btn.classList.remove('loading'); btn.classList.add('success');
       setBtnState(btn, '✅ Erfolgreich! Danke!', true);
-
       // Status nachziehen (manchmal schreibt das Log minimal verzögert)
       loadStatus();
       setTimeout(loadStatus, 3000);
     } else if (res.ok || res.status === 202) {
       btn.classList.remove('loading'); btn.classList.add('success');
       setBtnState(btn, '✅ Gestartet…', true);
-
       // 5) Auf neues Ergebnis im /status warten (per Timestamp)
       const t0 = Date.now();
       let seenUpdate = false;
@@ -411,11 +432,10 @@ async function runSpeedtest() {
     }
   } catch (e) {
     // 6) Timeout-Recovery: Wenn NUR der POST getimed out ist,
-    //    warten wir noch etwas aufs Log, bevor wir "Fehlgeschlagen" zeigen.
+    // warten wir noch etwas aufs Log, bevor wir "Fehlgeschlagen" zeigen.
     if (String(e.message).toLowerCase().includes('timeout')) {
       setBtnState(btn, '✅ Gestartet… (warte auf Ergebnis)', true);
       btn.classList.remove('loading'); btn.classList.add('success');
-
       const t0 = Date.now();
       let recovered = false;
       while (Date.now() - t0 < SPEEDTEST_POLL_TIMEOUT_MS) {
@@ -448,20 +468,18 @@ async function runSpeedtest() {
     }, 2000);
   }
 }
-    
+   
     // Einheitlicher Button-State
     function setBtnState(btn, label, disabled) {
   btn.innerHTML = label;
   btn.disabled = !!disabled;
 }
-
     async function sendViaEmailJS(text) {
       return emailjs.send('service_i3ceboq', 'template_3iie047', {
         feedback: text,
         timestamp: new Date().toLocaleString('de-DE', { timeZone: 'Europe/Berlin' })
       });
     }
-
     // Direkt senden (Haupt-Buttons)
     async function sendDirect(btn, msg) {
       const orig = btn.getAttribute('data-orig') || btn.innerHTML; // Emojis sind Klartext
@@ -470,7 +488,6 @@ async function runSpeedtest() {
       catch(e) { setBtnState(btn, '❌ Fehler – erneut versuchen?', false); return; }
       setTimeout(() => { btn.innerHTML = orig; btn.disabled = false; }, 1800);
     }
-
     // Modal Handling
     function openModal(msg, req = false) {
       currentMsg = msg; requireText = req;
@@ -480,7 +497,6 @@ async function runSpeedtest() {
       document.getElementById('modal').style.display = 'block';
     }
     function closeModal() { document.getElementById('modal').style.display = 'none'; }
-
     async function sendWithText(btnEl) {
       const txt = document.getElementById('extra-text').value.trim();
       if (requireText && !txt) { alert('Text erforderlich!'); return; }
@@ -490,17 +506,16 @@ async function runSpeedtest() {
       try { await sendViaEmailJS(full); setBtnState(btnEl, '✅ Danke für dein Feedback!', true); setTimeout(() => { closeModal(); btnEl.innerHTML = orig; btnEl.disabled = false; }, 900); }
       catch(e) { setBtnState(btnEl, '❌ Fehler – erneut?', false); }
     }
-
     async function sendWithoutText(btnEl) {
       const orig = btnEl.innerHTML;
       setBtnState(btnEl, '📨 Sende…', true);
       try { await sendViaEmailJS(currentMsg); setBtnState(btnEl, '✅ Danke für dein Feedback!', true); setTimeout(() => { closeModal(); btnEl.innerHTML = orig; btnEl.disabled = false; }, 900); }
       catch(e) { setBtnState(btnEl, '❌ Fehler – erneut?', false); }
     }
-
     // Init / Polling
     loadStatus();
     setInterval(loadStatus, 20000);
   </script>
 </body>
 </html>
+```
