@@ -527,9 +527,9 @@
 
           const speedBtn = document.getElementById('speedtest-btn');
           if (!internetOK) {
-            speedBtn.innerHTML = `Speedtest<br><small>Internet gestört</small>`;
+            speedBtn.innerHTML = `Internet gestört! Prüfe dein Netzwerk</small>`;
           } else {
-            speedBtn.innerHTML = `Speedtest<br><small>Server nicht erreichbar (VPN?)</small>`;
+            speedBtn.innerHTML = `Server ist von deinem Ort nicht erreichbar (VPN/GeoBlock?)</small>`;
           }
           document.getElementById('status-box').innerHTML = base + extra;
         })();
@@ -552,95 +552,124 @@
       return data?.vpn?.last_speedtest?.timestamp || null;
     }
 
-    async function runSpeedtest() {
-      const btn = document.getElementById('speedtest-btn');
-      setBtnState(btn, '⏳ Läuft… (~60 s)', true);
-      btn.classList.remove('success', 'error');
-      btn.classList.add('loading');
+async function runSpeedtest() {
+  const btn = document.getElementById('speedtest-btn');
+  setBtnState(btn, 'Wird geprüft…', true);
+  btn.classList.remove('success', 'error');
+  btn.classList.add('loading');
 
-      let prevTs = null;
-      try {
-        const before = await getStatusSafe();
-        prevTs = getSpeedTimestamp(before);
-      } catch {}
+  let prevTs = null;
+  try {
+    const before = await getStatusSafe();
+    prevTs = getSpeedTimestamp(before);
+  } catch {}
 
-      try {
-        const res = await fetchWithTimeout(`${API_BASE}/speedtest/run`, {
-          method: 'POST',
-          headers: { 'X-Token': SPEEDTEST_TOKEN, 'Accept': 'application/json' }
-        }, FETCH_TIMEOUT_MS_SPEEDTEST);
+  // Zähler für dynamischen Text
+  let pollCount = 0;
+  let pollTimer = null;
 
-        let data = null;
-        try {
-          const ct = res.headers.get('content-type') || '';
-          if (ct.includes('application/json')) data = await res.json();
-        } catch {}
+  try {
+    const res = await fetchWithTimeout(`${API_BASE}/speedtest/run`, {
+      method: 'POST',
+      headers: { 'X-Token': SPEEDTEST_TOKEN, 'Accept': 'application/json' }
+    }, FETCH_TIMEOUT_MS_SPEEDTEST);
 
-        if (data && data.success === true) {
-          btn.classList.remove('loading'); btn.classList.add('success');
-          setBtnState(btn, '✅ Erfolgreich! Danke!', true);
-          loadStatus();
-          setTimeout(loadStatus, 3000);
-        } else if (res.ok || res.status === 202) {
-          btn.classList.remove('loading'); btn.classList.add('success');
-          setBtnState(btn, '✅ Gestartet…', true);
-          const t0 = Date.now();
-          let seenUpdate = false;
-          while (Date.now() - t0 < SPEEDTEST_POLL_TIMEOUT_MS) {
-            await new Promise(r => setTimeout(r, SPEEDTEST_POLL_INTERVAL_MS));
-            try {
-              const now = await getStatusSafe();
-              const currTs = getSpeedTimestamp(now);
-              if (currTs && currTs !== prevTs) {
-                setBtnState(btn, '✅ Erfolgreich! Danke!', true);
-                await loadStatus();
-                seenUpdate = true;
-                break;
-              }
-            } catch {}
-          }
-          if (!seenUpdate) {
-            setBtnState(btn, '✅ Gestartet (wird protokolliert)…', true);
-            setTimeout(loadStatus, 3000);
-          }
-        } else {
-          throw new Error(`HTTP ${res.status}`);
-        }
-      } catch (e) {
-        if (String(e.message).toLowerCase().includes('timeout')) {
-          setBtnState(btn, '✅ Gestartet… (warte auf Ergebnis)', true);
-          btn.classList.remove('loading'); btn.classList.add('success');
-          const t0 = Date.now();
-          let recovered = false;
-          while (Date.now() - t0 < SPEEDTEST_POLL_TIMEOUT_MS) {
-            await new Promise(r => setTimeout(r, SPEEDTEST_POLL_INTERVAL_MS));
-            try {
-              const now = await getStatusSafe();
-              const currTs = getSpeedTimestamp(now);
-              if (currTs && currTs !== prevTs) {
-                setBtnState(btn, '✅ Erfolgreich! Danke!', true);
-                await loadStatus();
-                recovered = true;
-                break;
-              }
-            } catch {}
-          }
-          if (!recovered) {
-            btn.classList.add('error');
-            setBtnState(btn, '❌ Fehlgeschlagen (Timeout)', true);
-          }
-        } else {
-          console.error('Speedtest Fehler:', e);
-          btn.classList.remove('loading'); btn.classList.add('error');
-          setBtnState(btn, '❌ Fehlgeschlagen', true);
-        }
-      } finally {
-        setTimeout(() => {
-          setBtnState(btn, '⏱️ Speedtest starten', false);
-          btn.classList.remove('success', 'error');
-        }, 2000);
-      }
+    let data = null;
+    try {
+      const ct = res.headers.get('content-type') || '';
+      if (ct.includes('application/json')) data = await res.json();
+    } catch {}
+
+    // === 1. Sofortige Antwort: Gestartet! ===
+    if (data && data.success === true) {
+      btn.classList.remove('loading');
+      setBtnState(btn, 'Läuft… (~60 s)', true);
+
+      // Starte dynamischen Zähler
+      pollTimer = setInterval(() => {
+        pollCount++;
+        setBtnState(btn, `Läuft… (~60 s) (${pollCount * 2}s)`, true);
+      }, SPEEDTEST_POLL_INTERVAL_MS);
+
+      await pollForResult();
+      return;
     }
+
+    // === 2. 202 / OK ohne JSON: Gestartet, aber kein sofortiger Erfolg ===
+    if (res.ok || res.status === 202) {
+      btn.classList.remove('loading');
+      setBtnState(btn, 'Läuft… (~60 s)', true);
+
+      pollTimer = setInterval(() => {
+        pollCount++;
+        setBtnState(btn, `Läuft… (~60 s) (${pollCount * 2}s)`, true);
+      }, SPEEDTEST_POLL_INTERVAL_MS);
+
+      await pollForResult();
+      return;
+    }
+
+    throw new Error(`HTTP ${res.status}`);
+
+  } catch (e) {
+    // === 3. Timeout des POST? → trotzdem im Hintergrund gestartet ===
+    if (String(e.message).toLowerCase().includes('timeout')) {
+      btn.classList.remove('loading');
+      setBtnState(btn, 'Läuft… (Timeout, prüfe Ergebnis)', true);
+
+      pollTimer = setInterval(() => {
+        pollCount++;
+        setBtnState(btn, `Läuft… (~63 s) (${pollCount * 2}s)`, true);
+      }, SPEEDTEST_POLL_INTERVAL_MS);
+
+      await pollForResult();
+      return;
+    }
+
+    // === 4. Echter Fehler ===
+    console.error('Speedtest Fehler:', e);
+    btn.classList.remove('loading');
+    btn.classList.add('error');
+    setBtnState(btn, 'Fehlgeschlagen', true);
+
+  } finally {
+    // === Button nach 2s zurücksetzen ===
+    setTimeout(() => {
+      if (pollTimer) clearInterval(pollTimer);
+      setBtnState(btn, 'Speedtest starten', false);
+      btn.classList.remove('success', 'error', 'loading');
+    }, 2000);
+  }
+
+  // === Hilfsfunktion: Polling bis Ergebnis oder Timeout ===
+  async function pollForResult() {
+    const t0 = Date.now();
+    let seenUpdate = false;
+
+    while (Date.now() - t0 < SPEEDTEST_POLL_TIMEOUT_MS) {
+      await new Promise(r => setTimeout(r, SPEEDTEST_POLL_INTERVAL_MS));
+      try {
+        const now = await getStatusSafe();
+        const currTs = getSpeedTimestamp(now);
+
+        if (currTs && currTs !== prevTs) {
+          if (pollTimer) clearInterval(pollTimer);
+          btn.classList.add('success');
+          setBtnState(btn, 'Erfolgreich! Danke!', true);
+          await loadStatus();
+          seenUpdate = true;
+          break;
+        }
+      } catch {}
+    }
+
+    if (!seenUpdate) {
+      if (pollTimer) clearInterval(pollTimer);
+      btn.classList.add('error');
+      setBtnState(btn, 'Fehlgeschlagen (kein Ergebnis)', true);
+    }
+  }
+}
 
     function setBtnState(btn, label, disabled) {
       btn.innerHTML = label;
