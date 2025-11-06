@@ -378,7 +378,7 @@
       return Number.isFinite(n) ? n : null;
     }
 
-     function probeInternetOK(timeoutMs = 4000) {
+     async function probeInternetOK(timeoutMs = 4000) {
       const ctrl = new AbortController();
       const t = setTimeout(() => ctrl.abort(), timeoutMs);
       try {
@@ -449,7 +449,7 @@
       el.textContent = `Letzte Aktualisierung: ${dt.toLocaleTimeString('de-DE')}`;
     }
 
-     function loadStatus() {
+     async function loadStatus() {
       try {
         const res = await fetchWithTimeout(`${API_BASE}/status`);
         const data = await res.json();
@@ -513,26 +513,25 @@
           setBanner('switching', 'SERVERWECHSEL – Verbindung wird umgeschaltet…');
         }
 
-        ( () => {
-          const internetOK = await probeInternetOK();
-          let extra = '';
-          if (!internetOK) {
-            extra = `<p>📡 Hinweis: Deine Internetverbindung scheint aktuell gestört.</p>`;
-          } else {
-            extra = `<p>🌐 Hinweis: Server von deinem Standort aus evtl. nicht erreichbar (VPN/Geo-Block?).</p>`;
-          }
-          const base = isOffline
-            ? `<p><b>Server offline.</b> Bitte Administrator kontaktieren.</p>`
-            : `<p>Verbinde… (${Math.floor(elapsed/1000)} s ohne Antwort)</p>`;
-
-          const speedBtn = document.getElementById('speedtest-btn');
-          if (!internetOK) {
-            speedBtn.innerHTML = `Internet gestört! Prüfe dein Netzwerk</small>`;
-          } else {
-            speedBtn.innerHTML = `Server ist von deinem Ort nicht erreichbar (VPN/GeoBlock?)</small>`;
-          }
-          document.getElementById('status-box').innerHTML = base + extra;
-        })();
+  (async () => {
+  const internetOK = await probeInternetOK();
+  let extra = '';
+  if (!internetOK) {
+    extra = `<p>📡 Hinweis: Deine Internetverbindung scheint aktuell gestört.</p>`;
+  } else {
+    extra = `<p>🌐 Hinweis: Server von deinem Standort aus evtl. nicht erreichbar (VPN/Geo-Block?).</p>`;
+  }
+  const base = isOffline
+    ? `<p><b>Server offline.</b> Bitte Administrator kontaktieren.</p>`
+    : `<p>Verbinde… (${Math.floor(elapsed/1000)} s ohne Antwort)</p>`;
+  const speedBtn = document.getElementById('speedtest-btn');
+  if (!internetOK) {
+    speedBtn.innerHTML = `Speedtest<br><small>Internet gestört</small>`;
+  } else {
+    speedBtn.innerHTML = `Speedtest<br><small>Server nicht erreichbar (VPN?)</small>`;
+  }
+  document.getElementById('status-box').innerHTML = base + extra;
+})();
 
         setInterval(() => {
           if (failSinceTs) {
