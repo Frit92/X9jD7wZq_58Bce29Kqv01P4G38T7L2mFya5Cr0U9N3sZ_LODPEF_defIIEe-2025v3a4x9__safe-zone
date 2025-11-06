@@ -348,10 +348,17 @@
       const base = isOffline
         ? `<p><b>Server offline.</b> Bitte Administrator kontaktieren.</p>`
         : `<p>Verbinde… (${Math.floor(elapsed/1000)} s ohne Antwort)</p>`;
+      
+      // === NEU: Hinweis direkt im Speedtest-Button anzeigen ===
+      const speedBtn = document.getElementById('speedtest-btn');
+      if (!internetOK) {
+        speedBtn.innerHTML = `Speedtest<br><small>Internet gestört</small>`;
+      } else {
+        speedBtn.innerHTML = `Speedtest<br><small>Server nicht erreichbar (VPN?)</small>`;
+      }
+      // =====================================================
+
       document.getElementById('status-box').innerHTML = base + extra;
-    })();
-  }
-}
    
     // Watchdog prüft alle 5s, ob die 15-Minuten-Schwelle überschritten ist
     setInterval(() => {
