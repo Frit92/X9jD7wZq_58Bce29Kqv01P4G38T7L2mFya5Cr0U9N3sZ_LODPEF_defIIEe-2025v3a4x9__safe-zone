@@ -378,7 +378,7 @@
       return Number.isFinite(n) ? n : null;
     }
 
-    async function probeInternetOK(timeoutMs = 4000) {
+     function probeInternetOK(timeoutMs = 4000) {
       const ctrl = new AbortController();
       const t = setTimeout(() => ctrl.abort(), timeoutMs);
       try {
@@ -449,7 +449,7 @@
       el.textContent = `Letzte Aktualisierung: ${dt.toLocaleTimeString('de-DE')}`;
     }
 
-    async function loadStatus() {
+     function loadStatus() {
       try {
         const res = await fetchWithTimeout(`${API_BASE}/status`);
         const data = await res.json();
@@ -513,7 +513,7 @@
           setBanner('switching', 'SERVERWECHSEL – Verbindung wird umgeschaltet…');
         }
 
-        (async () => {
+        ( () => {
           const internetOK = await probeInternetOK();
           let extra = '';
           if (!internetOK) {
@@ -543,7 +543,7 @@
       }
     }
 
-    async function getStatusSafe() {
+     function getStatusSafe() {
       const res = await fetchWithTimeout(`${API_BASE}/status`, {}, FETCH_TIMEOUT_MS_STATUS);
       return res.json();
     }
@@ -552,16 +552,25 @@
       return data?.vpn?.last_speedtest?.timestamp || null;
     }
 
-async function runSpeedtest() {
+ function runSpeedtest() {
   const btn = document.getElementById('speedtest-btn');
   setBtnState(btn, 'Wird geprüft…', true);
   btn.classList.remove('success', 'error');
   btn.classList.add('loading');
 
   let prevTs = null;
+  let prevSpeed = { download: 0, upload: 0, ping: 0 };
   try {
     const before = await getStatusSafe();
-    prevTs = getSpeedTimestamp(before);
+    const speed = before?.vpn?.last_speedtest;
+    if (speed) {
+      prevTs = speed.timestamp || null;
+      prevSpeed = {
+        download: speed.download || 0,
+        upload: speed.upload || 0,
+        ping: speed.ping || 0
+      };
+    }
   } catch {}
 
   // Zähler für dynamischen Text
@@ -642,32 +651,51 @@ async function runSpeedtest() {
   }
 
   // === Hilfsfunktion: Polling bis Ergebnis oder Timeout ===
-  async function pollForResult() {
-    const t0 = Date.now();
-    let seenUpdate = false;
+async function pollForResult() {
+  const t0 = Date.now();
+  let seenUpdate = false;
 
-    while (Date.now() - t0 < SPEEDTEST_POLL_TIMEOUT_MS) {
-      await new Promise(r => setTimeout(r, SPEEDTEST_POLL_INTERVAL_MS));
-      try {
-        const now = await getStatusSafe();
-        const currTs = getSpeedTimestamp(now);
+  let lastSpeed = null;
+  try {
+    const initial = await getStatusSafe();
+    lastSpeed = initial?.vpn?.last_speedtest;
+  } catch {}
 
-        if (currTs && currTs !== prevTs) {
-          if (pollTimer) clearInterval(pollTimer);
-          btn.classList.add('success');
-          setBtnState(btn, 'Erfolgreich! Danke!', true);
-          await loadStatus();
-          seenUpdate = true;
-          break;
-        }
-      } catch {}
-    }
+  while (Date.now() - t0 < SPEEDTEST_POLL_TIMEOUT_MS) {
+    await new Promise(r => setTimeout(r, SPEEDTEST_POLL_INTERVAL_MS));
+    try {
+      const now = await getStatusSafe();
+      const currentSpeed = now?.vpn?.last_speedtest;
 
-    if (!seenUpdate) {
-      if (pollTimer) clearInterval(pollTimer);
-      btn.classList.add('error');
-      setBtnState(btn, 'Fehlgeschlagen (kein Ergebnis)', true);
-    }
+      if (!currentSpeed) continue;
+
+      // --- Vergleich: Timestamp ODER Werte geändert ---
+      const tsChanged = prevTs && currentSpeed.timestamp && currentSpeed.timestamp !== prevTs;
+      const valuesChanged = lastSpeed && (
+        currentSpeed.download !== lastSpeed.download ||
+        currentSpeed.upload !== lastSpeed.upload ||
+        currentSpeed.ping !== lastSpeed.ping
+      );
+
+      if (tsChanged || valuesChanged || (!lastSpeed && currentSpeed.download > 0)) {
+        if (pollTimer) clearInterval(pollTimer);
+        btn.classList.add('success');
+        setBtnState(btn, 'Erfolgreich! Danke!', true);
+        await loadStatus();
+        seenUpdate = true;
+        break;
+      }
+
+      // Update lastSpeed für nächsten Durchlauf
+      lastSpeed = currentSpeed;
+
+    } catch {}
+  }
+
+  if (!seenUpdate) {
+    if (pollTimer) clearInterval(pollTimer);
+    btn.classList.add('error');
+    setBtnState(btn, 'Fehlgeschlagen (kein Ergebnis)', true);
   }
 }
 
