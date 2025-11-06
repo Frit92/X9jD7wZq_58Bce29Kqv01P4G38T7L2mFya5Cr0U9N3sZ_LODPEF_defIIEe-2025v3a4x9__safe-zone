@@ -1,3 +1,13 @@
+// ... nach dem Parsen von data/vpn
+const switching = !!vpn.switching_now;
+
+// Summary-Label:
+const summaryEl = document.getElementById('summary-server');
+if (switching) {
+  summaryEl.textContent = 'Server: Wechsel läuft…';
+} else {
+  summaryEl.textContent = `Server: ${vpn.current_server || 'Unbekannt'}`;
+}
 <!DOCTYPE html>
 <html lang="de">
 <head>
@@ -262,58 +272,68 @@
       el.textContent = `Letzte Aktualisierung: ${dt.toLocaleTimeString('de-DE')}`;
     }
 
-    async function loadStatus() {
-      try {
-        const res = await fetchWithTimeout(`${API_BASE}/status`);
-        const data = await res.json();
+ async function loadStatus() {
+  try {
+    const res = await fetchWithTimeout(`${API_BASE}/status`);
+    const data = await res.json();
 
-        // Erfolg → Watchdog zurücksetzen
-        lastSuccessTs = Date.now();
-        failSinceTs = null;
+    lastSuccessTs = Date.now();
+    failSinceTs = null;
 
-        const vpn = data.vpn || {};
-        const speed = vpn.last_speedtest || { ping: 0, download: 0, upload: 0 };
-        const dlPct = Math.min((speed.download/90)*100, 100);
-        const ulPct = Math.min((speed.upload/36)*100, 100);
-        const loadPct = Math.min(data.load_percent || 0, 100);
+    const vpn = data.vpn || {};
+    const switching = !!vpn.switching_now;
+    const speed = vpn.last_speedtest || { ping: 0, download: 0, upload: 0 };
+    const dlPct = Math.min((speed.download/90)*100, 100);
+    const ulPct = Math.min((speed.upload/36)*100, 100);
+    const loadPct = Math.min(data.load_percent || 0, 100);
 
-        // Banner: wenn Backend sagt switching_now → switching, sonst verstecken
-        if (vpn.switching_now) setBanner('switching'); else setBanner('hidden');
+    // Summary-Label nur HIER setzen (nicht später nochmal überschreiben)
+    const summaryEl = document.getElementById('summary-server');
+    summaryEl.textContent = switching
+      ? 'Server: Wechsel läuft…'
+      : `Server: ${vpn.current_server || 'Unbekannt'}`;
 
-        // Summary + Mini-Balken
-        document.getElementById('summary-server').textContent = `Server: ${vpn.current_server || 'Unbekannt'}`;
-        setMiniBars(loadPct, dlPct, ulPct);
-        setSummaryMeta(lastSuccessTs);
+    // Banner
+    if (switching) setBanner('switching'); else setBanner('hidden');
 
-        // Detail-Box
-        document.getElementById('status-box').innerHTML = `
-          <p><b>Server:</b> ${vpn.current_server || 'Unbekannt'} (Load: ${vpn.server_load_percent || 0}%)</p>
-          <p><b>Auslastung:</b> ${data.load_percent || 0}% (${data.streams || 0} Streams, ${data.downloads || 0} Downloads)</p>
-          <progress value="${(data.load_percent || 0)/100}" max="1" class="${(data.load_percent || 0) > 75 ? 'high' : ''}"></progress>
-          <p><b>Speedtest:</b> Ping <b>${speed.ping || 0} ms</b></p>
-          <p><b>DL:</b> <b>${speed.download || 0} Mbit/s</b></p>
-          <progress value="${dlPct/100}" max="1" class="blue"></progress>
-          <p><b>UL:</b> <b>${speed.upload || 0} Mbit/s</b></p>
-          <progress value="${ulPct/100}" max="1" class="blue"></progress>
-          <p><b>Wechsel:</b> ${vpn.switching_now ? '<span style="color:#111;background:var(--badge);padding:0.15em 0.45em;border-radius:6px;font-weight:800;">Läuft gerade!</span>' : `Letzter: ${vpn.last_switch || 'Keiner'} um ${vpn.last_switch_time || ''}`}</p>
-        `;
-      } catch (e) {
-        // Fehlschlag → ggf. Startzeit setzen und Banner auf SWITCHING stellen
-        if (!failSinceTs) failSinceTs = Date.now();
-        setSummaryMeta(lastSuccessTs);
+    // Mini-Balken + Meta
+    setMiniBars(loadPct, dlPct, ulPct);
+    setSummaryMeta(lastSuccessTs);
 
-        // Wenn noch unter 15 Minuten ohne Erfolg → SWITCHING anzeigen
-        const elapsed = Date.now() - failSinceTs;
-        if (elapsed < OFFLINE_THRESHOLD_MS) {
-          setBanner('switching', 'SERVERWECHSEL – Verbindung wird umgeschaltet…');
-          document.getElementById('status-box').innerHTML = `<p>Verbinde… (${Math.floor(elapsed/1000)}s ohne Antwort)</p>`;
-        } else {
-          setBanner('offline');
-          document.getElementById('status-box').innerHTML = `<p><b>Server offline.</b> Bitte Administrator kontaktieren.</p>`;
-        }
-      }
+    // Detail-Box
+    document.getElementById('status-box').innerHTML = `
+      <p><b>Server:</b> ${vpn.current_server || 'Unbekannt'} (Load: ${vpn.server_load_percent || 0}%)</p>
+      <p><b>Auslastung:</b> ${data.load_percent || 0}% (${data.streams || 0} Streams, ${data.downloads || 0} Downloads)</p>
+      <progress value="${(data.load_percent || 0)/100}" max="1" class="${(data.load_percent || 0) > 75 ? 'high' : ''}"></progress>
+      <p><b>Speedtest:</b> Ping <b>${speed.ping || 0} ms</b></p>
+      <p><b>DL:</b> <b>${speed.download || 0} Mbit/s</b></p>
+      <progress value="${dlPct/100}" max="1" class="blue"></progress>
+      <p><b>UL:</b> <b>${speed.upload || 0} Mbit/s</b></p>
+      <progress value="${ulPct/100}" max="1" class="blue"></progress>
+      <p><b>Wechsel:</b> ${switching
+        ? '<span style="color:#111;background:var(--badge);padding:0.15em 0.45em;border-radius:6px;font-weight:800;">Läuft gerade!</span>'
+        : `Letzter: ${vpn.last_switch || 'Keiner'} um ${vpn.last_switch_time || ''}`}</p>
+    `;
+  } catch (e) {
+    if (!failSinceTs) failSinceTs = Date.now();
+    setSummaryMeta(lastSuccessTs);
+
+    // Summary oben neutralisieren
+    document.getElementById('summary-server').textContent = 'Server: (unbekannt)';
+
+    const elapsed = Date.now() - failSinceTs;
+    if (elapsed < OFFLINE_THRESHOLD_MS) {
+      setBanner('switching', 'SERVERWECHSEL – Verbindung wird umgeschaltet…');
+      document.getElementById('status-box').innerHTML =
+        `<p>Verbinde… (${Math.floor(elapsed/1000)}s ohne Antwort)</p>`;
+    } else {
+      setBanner('offline');
+      document.getElementById('status-box').innerHTML =
+        `<p><b>Server offline.</b> Bitte Administrator kontaktieren.</p>`;
     }
-
+  }
+}
+    
     // Watchdog prüft alle 5s, ob die 15-Minuten-Schwelle überschritten ist
     setInterval(() => {
       if (failSinceTs) {
