@@ -254,6 +254,22 @@
     }
   </style>
   <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+    <!-- PWA: Manifest + Theme + iOS Support -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#e50914">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Fritflix Feedback">
+
+  <!-- PWA: Service Worker (nach EmailJS) -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('sw.js')
+          .catch(err => console.log('SW failed:', err));
+      });
+    }
+  </script>
 </head>
 <body>
   <h1>Feedback zu Fritflix</h1>
