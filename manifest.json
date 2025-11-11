@@ -2,19 +2,20 @@
   "name": "Fritflix Feedback",
   "short_name": "Fritflix",
   "description": "Feedback, Speedtest & Server-Status für Fritflix",
-  "start_url": "/",
+  "start_url": "/X9jD7wZq_58Bce29Kqv01P4G38T7L2mFya5Cr0U9N3sZ_LODPEF_defIIEe-2025v3a4x9__safe-zone/",
+  "scope": "/X9jD7wZq_58Bce29Kqv01P4G38T7L2mFya5Cr0U9N3sZ_LODPEF_defIIEe-2025v3a4x9__safe-zone/",
   "display": "standalone",
   "background_color": "#111",
   "theme_color": "#e50914",
   "orientation": "portrait-primary",
   "icons": [
     {
-      "src": "icon-192.png",
+      "src": "/X9jD7wZq_58Bce29Kqv01P4G38T7L2mFya5Cr0U9N3sZ_LODPEF_defIIEe-2025v3a4x9__safe-zone/icon-192.png",
       "sizes": "192x192",
       "type": "image/png"
     },
     {
-      "src": "icon-512.png",
+      "src": "/X9jD7wZq_58Bce29Kqv01P4G38T7L2mFya5Cr0U9N3sZ_LODPEF_defIIEe-2025v3a4x9__safe-zone/icon-512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable any"
