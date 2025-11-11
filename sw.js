@@ -1,12 +1,12 @@
-const CACHE_NAME = 'fritflix-feedback-v2';
+const CACHE_NAME = 'fritflix-feedback-v4';
+const BASE_PATH = '/X9jD7wZq_58Bce29Kqv01P4G38T7L2mFya5Cr0U9N3sZ_LODPEF_defIIEe-2025v3a4x9__safe-zone';
 const urlsToCache = [
-  '/',
-  '/index.html',
-  '/manifest.json',
-  '/icon-192.png',
-  '/icon-512.png',
+  `${BASE_PATH}/`,
+  `${BASE_PATH}/index.html`,
+  `${BASE_PATH}/manifest.json`,
+  `${BASE_PATH}/icon-192.png`,
+  `${BASE_PATH}/icon-512.png`,
   'https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js'
-  // Füge später eigene JS/CSS hinzu
 ];
 
 self.addEventListener('install', event => {
