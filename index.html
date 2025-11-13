@@ -35,7 +35,7 @@
       gap: 1em;
     }
     h1 { font-size: 1.8em; margin: 0.5em 0 0.2em; font-weight: 600; }
-    /* Immer sichtbarer Serverwechsel-/Offline-Banner */
+    /* Banner */
     #switch-banner {
       position: sticky;
       top: 0;
@@ -53,7 +53,7 @@
     #switch-banner .icon { font-size: 1.25em; margin-right: 0.4em; }
     #switch-banner.switching { background: linear-gradient(90deg, var(--badge), #ffaa00); color: #111; }
     #switch-banner.offline { background: linear-gradient(90deg, #ff5555, #ff2222); color: #fff; border-color: #00000070; }
-    /* Ausklappbarer Status-Block */
+    /* Status */
     details#status-details {
       width: 95%;
       max-width: 420px;
@@ -176,7 +176,7 @@
       justify-content: center;
     }
     .note-btn:hover { background: #444; }
-    .speedtest-btn {
+    .speedtest-btn, .faq-jump-btn {
       background: var(--blue);
       color: #fff;
       font-weight: 700;
@@ -187,7 +187,7 @@
       width: 95%;
       max-width: 420px;
     }
-    .speedtest-btn:hover { background: #0d62c7; }
+    .speedtest-btn:hover, .faq-jump-btn:hover { background: #0d62c7; }
     .speedtest-btn.loading { background: #666; }
     .speedtest-btn.success { background: var(--success); }
     .speedtest-btn.error { background: var(--error); }
@@ -239,29 +239,68 @@
       background: #353535;
       color: #ffffff;
     }
-    #modal .main-row {
-      display: flex;
-      gap: 0.5em;
-      width: 100%;
-      justify-content: center;
-    }
-    #modal .main-row button { flex: 1; max-width: none; }
     @media (max-width: 480px) {
       h1 { font-size: 1.5em; }
       .feedback-btn { font-size: 1em; padding: 0.9em 0.7em; min-height: 50px; }
       .note-btn { font-size: 1.2em; width: 50px; min-height: 50px; }
       .summary-bars { width: 50%; }
     }
+
+    /* === FAQ STYLING === */
+    .faq-item {
+      margin: 0.8em 0;
+      background: #1f1f1f;
+      border-radius: 8px;
+      overflow: hidden;
+      border: 1px solid var(--border);
+    }
+    .faq-item > summary {
+      padding: 0.8em 1em;
+      cursor: pointer;
+      font-weight: 600;
+      background: #252525;
+      list-style: none;
+      display: flex;
+      align-items: center;
+      gap: 0.6em;
+    }
+    .faq-item > summary::-webkit-details-marker { display: none; }
+    .faq-item[open] > summary .chev { transform: rotate(90deg); }
+    .faq-answer {
+      padding: 0.9em 1em;
+      font-size: 0.95em;
+      line-height: 1.55;
+    }
+    .faq-answer ol, .faq-answer ul { margin: 0.4em 0; padding-left: 1.2em; }
+    .faq-answer li { margin: 0.35em 0; }
+    .faq-answer code {
+      background: #333;
+      padding: 0.2em 0.4em;
+      border-radius: 4px;
+      font-size: 0.9em;
+      color: var(--blue);
+    }
+    #faq-search {
+      width: 100%;
+      padding: 0.75em 1em;
+      margin-bottom: 1em;
+      background: #2a2a2a;
+      color: #fff;
+      border: 1px solid #444;
+      border-radius: 8px;
+      font-size: 0.95em;
+    }
+    #faq-search:focus {
+      outline: 2px solid var(--primary);
+      outline-offset: -2px;
+    }
   </style>
   <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
-    <!-- PWA: Manifest + Theme + iOS Support -->
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#e50914">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Fritflix Feedback">
-
-  <!-- PWA: Service Worker (nach EmailJS) -->
   <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
@@ -273,17 +312,19 @@
 </head>
 <body>
   <h1>Feedback zu Fritflix</h1>
-  <!-- Immer sichtbarer Banner -->
+
+  <!-- Banner -->
   <div id="switch-banner">
-    <span class="icon">❗</span>
+    <span class="icon">Warning</span>
     <span id="switch-text">SERVERWECHSEL – Verbindung wird umgeschaltet…</span>
   </div>
-  <!-- Ausklappbarer Status -->
+
+  <!-- Status -->
   <details id="status-details">
     <summary>
       <div class="summary-row">
         <div class="summary-left">
-          <span class="chev">▶</span>
+          <span class="chev">Right Arrow</span>
           <span id="summary-server">Server: –</span>
         </div>
         <div class="summary-bars">
@@ -296,8 +337,16 @@
     </summary>
     <div id="status-box">Lade Server-Status…</div>
   </details>
-  <!-- Speedtest Button -->
+
+  <!-- Speedtest -->
   <button id="speedtest-btn" class="speedtest-btn" onclick="runSpeedtest()">⏱️ Speedtest starten</button>
+
+  <!-- FAQ Sprung-Button -->
+  <button id="faq-jump-btn" class="faq-jump-btn" 
+          onclick="document.getElementById('faq-section').scrollIntoView({behavior:'smooth'});">
+    FAQ – Hilfe & Lösungen
+  </button>
+  
   <!-- Feedback Buttons -->
   <div class="button-container">
     <div class="btn-row">
@@ -353,58 +402,198 @@
       <button class="note-btn" onclick="openModal('App stürzt ab')">📝</button>
     </div>
   </div>
-  <button class="feedback-btn" style="margin-top:0.6em;padding:1em;width:95%;max-width:420px;" onclick="openModal('Anderes Problem', true)">➕ Anderes Problem</button>
+  
+  <button class="feedback-btn" style="margin-top:0.6em;padding:1em;width:95%;max-width:420px;" onclick="openModal('Anderes Problem', true)">Anderes Problem</button>
+
+  <!-- === FAQ SECTION (ganz unten) === -->
+  <section id="faq-section" style="margin-top: 1.5em; width: 95%; max-width: 420px;">
+    <details id="faq-details">
+      <summary style="background: #202020; padding: 0.9em 1em; border-radius: 10px; cursor: pointer; user-select: none;">
+        <div style="display: flex; align-items: center; gap: 0.6em; justify-content: space-between; width: 100%;">
+          <div style="display: flex; align-items: center; gap: 0.6em; font-weight: 600;">
+            <span class="chev">FAQ</span>
+            <span>FAQ – Häufige Fragen & Lösungen</span>
+          </div>
+          <span style="font-size: 0.85em; opacity: 0.8;">Tippe zum Öffnen</span>
+        </div>
+      </summary>
+
+      <div style="padding: 1.2em 1em; background: var(--box-bg); border-top: 1px solid var(--border); border-radius: 0 0 10px 10px;">
+        <input type="text" id="faq-search" placeholder="Frage suchen…" />
+
+        <div id="faq-container">
+          <!-- FAQ Einträge -->
+          <details class="faq-item">
+            <summary>Der Film oder die Serie ruckelt</summary>
+            <div class="faq-answer">
+              <ol>
+                <li><b>Qualität prüfen:</b> Bei <i>Direct Play</i> brauchst du mind. 20 Mbit/s. Ruckelt es? Reduziere Bitrate: 8 → 5 → 3 Mbit/s.</li>
+                <li><b>Server-Auslastung:</b> Oben prüfen. Bei 4+ Streams/Downloads → voll.</li>
+                <li><b>Speedtest:</b> Hier starten + <a href="https://www.google.com/search?q=speedtest" target="_blank" style="color: var(--blue);">Google Speedtest</a>. Download/Upload < 20 Mbit/s? → Admin informieren.</li>
+                <li><b>App neu starten.</b> Hilft nichts? → Admin kontaktieren.</li>
+              </ol>
+            </div>
+          </details>
+
+          <details class="faq-item">
+            <summary>Ich kann mich nicht anmelden</summary>
+            <div class="faq-answer">
+              <ol>
+                <li><b>Richtiges Passwort?</b> Groß-/Kleinschreibung beachten.</li>
+                <li><b>Anderes Gerät?</b> Nur 1 Sitzung. Abmelden → erneut versuchen.</li>
+                <li><b>Profilbild grau?</b> 3× falsch → Account gesperrt. Admin kontaktieren.</li>
+              </ol>
+            </div>
+          </details>
+
+          <details class="faq-item">
+            <summary>Ich finde den Film/die Serie nicht</summary>
+            <div class="faq-answer">
+              <ol>
+                <li><b>Suche prüfen:</b> Exakt schreiben. Umlaute vermeiden. Jellyfin kennt DE + EN Titel.</li>
+                <li><b>Nicht da?</b> Wunsch an Admin.</li>
+              </ol>
+            </div>
+          </details>
+
+          <details class="faq-item">
+            <summary>Ich kann das Intro nicht überspringen</summary>
+            <div class="faq-answer">
+              <p>Drücke <b>„Intro überspringen“</b> (Android TV: Kreis). Nicht perfekt? → selbst vorspulen.</p>
+            </div>
+          </details>
+
+          <details class="faq-item">
+            <summary>Der Film startet nicht</summary>
+            <div class="faq-answer">
+              <ol>
+                <li><b>4K?</b> Bis 5 Min. Vorladezeit.</li>
+                <li>Jellyfin neu starten oder Server-Status prüfen.</li>
+              </ol>
+            </div>
+          </details>
+
+          <details class="faq-item">
+            <summary>Fehlermeldung: „Nicht mit Client/Gerät kompatibel“</summary>
+            <div class="faq-answer">
+              <ol>
+                <li><b>Oft Ladeproblem:</b> Speedtest >20 Mbit/s?</li>
+                <li>Film neu laden.</li>
+                <li>Auflösung reduzieren (wird gemerkt).</li>
+                <li>Anderes Gerät testen.</li>
+              </ol>
+            </div>
+          </details>
+
+          <details class="faq-item">
+            <summary>Fehlermeldung: „Kann nicht wiedergegeben werden“</summary>
+            <div class="faq-answer">
+              <p>Serverproblem (Festplatte). <b>Admin kontaktieren.</b></p>
+            </div>
+          </details>
+
+          <details class="faq-item">
+            <summary>Sammlungen laden nicht</summary>
+            <div class="faq-answer">
+              <p>Bis 15 Sek. warten. Nach 30 Sek.: Seite neu laden. → Admin.</p>
+            </div>
+          </details>
+
+          <details class="faq-item">
+            <summary>Startseite lädt nicht mehr</summary>
+            <div class="faq-answer">
+              <p><b>Jellyfin-App neu installieren.</b></p>
+            </div>
+          </details>
+
+          <details class="faq-item">
+            <summary>Wo finde ich die Apps?</summary>
+            <div class="faq-answer">
+              <ul>
+                <li>TV/Fire TV: App Store → „Jellyfin“</li>
+                <li>Android/iOS: Play Store/App Store → „Jellyfin“</li>
+                <li>Apple TV: „Swiftfin“</li>
+                <li>PC: <a href="https://github.com/jellyfin/jellyfin-media-player/releases/tag/v1.12.0" target="_blank" style="color: var(--blue);">Jellyfin Media Player v1.12.0</a></li>
+              </ul>
+            </div>
+          </details>
+
+          <details class="faq-item">
+            <summary>Wie melde ich mich an?</summary>
+            <div class="faq-answer">
+              <ol>
+                <li>App installieren oder Browser öffnen.</li>
+                <li><b>Server:</b><br>
+                  <code>https://fritflix.dedyn.io:33420</code><br>
+                  <small>iOS: <code>https://app.fritflix.dedyn.io:33420</code></small>
+                </li>
+                <li>Browser: Generalbenutzer + Passwort (WhatsApp-Gruppe).</li>
+                <li>Deinen Namen wählen → Passwort eingeben (privat geschickt).</li>
+                <li>Passwort vergessen? → Admin.</li>
+              </ol>
+            </div>
+          </details>
+
+          <details class="faq-item">
+            <summary>Server offline / kann nicht verbinden</summary>
+            <div class="faq-answer">
+              <ol>
+                <li><b>VPN aus?</b> Nur DE/ES erlaubt.</li>
+                <li><b>Volle Stunde:</b> VPN-Wechsel → bis 15 Min. offline. Status prüfen.</li>
+                <li>Länger? → <b>Admin kontaktieren</b>.</li>
+              </ol>
+            </div>
+          </details>
+        </div>
+      </div>
+    </details>
+  </section>
+
   <!-- Modal -->
   <div id="modal">
     <h3 id="modal-title"></h3>
     <textarea id="extra-text" placeholder="Zusätzliche Beschreibung…"></textarea>
     <div class="modal-buttons">
-      <button id="btn-with-text" class="feedback-btn primary-full" onclick="sendWithText(this)">📨 Senden mit Text</button>
+      <button id="btn-with-text" class="feedback-btn primary-full" onclick="sendWithText(this)">Senden mit Text</button>
       <div class="bottom-row">
-        <button id="no-text-btn" class="subtle-btn" onclick="sendWithoutText(this)">📨 Ohne Text senden</button>
+        <button id="no-text-btn" class="subtle-btn" onclick="sendWithoutText(this)">Ohne Text senden</button>
         <button class="feedback-btn" style="background:#666;" onclick="closeModal()">Abbrechen</button>
       </div>
     </div>
   </div>
+
   <script>
     emailjs.init({ publicKey: "E4jHB9-hSCQJ6yEUf" });
     const API_BASE = "https://fritflix.dedyn.io:33420/api";
     const SPEEDTEST_TOKEN = "fhe9wzr83ezrw7ft72636770pueu9uft";
-    const OFFLINE_THRESHOLD_MS = 15 * 60 * 1000; // 15 Minuten
-    const FETCH_TIMEOUT_MS = 10000; // 10s Timeout pro Request
-    const FETCH_TIMEOUT_MS_SPEEDTEST = 120000; // /speedtest/run (2 min Puffer)
-    const SPEEDTEST_POLL_TIMEOUT_MS = 90000; // max. 90s auf neues Ergebnis warten
-    const SPEEDTEST_POLL_INTERVAL_MS = 2000; // alle 2s nachsehen
+    const OFFLINE_THRESHOLD_MS = 15 * 60 * 1000;
+    const FETCH_TIMEOUT_MS = 10000;
+    const FETCH_TIMEOUT_MS_SPEEDTEST = 120000;
+    const SPEEDTEST_POLL_TIMEOUT_MS = 90000;
+    const SPEEDTEST_POLL_INTERVAL_MS = 2000;
     const FETCH_TIMEOUT_MS_STATUS = 10000;
     const MAX_MEMORY_AGE_MS = 24 * 60 * 60 * 1000;
     const LS_LAST_SUCCESS = 'ff_last_success_ts';
     const LS_FAIL_SINCE = 'ff_fail_since_ts';
+
     function lsNum(key) {
       const v = localStorage.getItem(key);
       const n = v == null ? null : Number(v);
       return Number.isFinite(n) ? n : null;
     }
-    // Neue Funktion: IP-basierte Location-Check für Geo/VPN
+
     async function probeLocation(timeoutMs = 5000) {
       try {
         const res = await fetch('https://ipapi.co/json/', { signal: AbortSignal.timeout(timeoutMs) });
         if (!res.ok) return null;
         const data = await res.json();
         const country = data.country_code || 'Unbekannt';
-        const isAllowed = ['DE', 'ES'].includes(country); // Nur Deutschland und Spanien erlaubt
+        const isAllowed = ['DE', 'ES'].includes(country);
         const isVPN = data.org?.toLowerCase().includes('vpn') || data.hosting || false;
-
-        return {
-          city: data.city || 'Unbekannt',
-          country: country,
-          allowed: isAllowed,
-          vpn: isVPN
-        };
-      } catch {
-        return null;
-      }
+        return { city: data.city || 'Unbekannt', country, allowed: isAllowed, vpn: isVPN };
+      } catch { return null; }
     }
-    
+
     async function probeInternetOK(timeoutMs = 4000) {
       const ctrl = new AbortController();
       const t = setTimeout(() => ctrl.abort(), timeoutMs);
@@ -417,9 +606,11 @@
         return false;
       }
     }
+
     let currentMsg = '', requireText = false;
     let lastSuccessTs = null;
     let failSinceTs = null;
+
     (function initPersistedState() {
       const persistedFail = lsNum(LS_FAIL_SINCE);
       const persistedOk = lsNum(LS_LAST_SUCCESS);
@@ -430,12 +621,14 @@
       }
       if (persistedOk) lastSuccessTs = persistedOk;
     })();
+
     function fetchWithTimeout(url, opts = {}, ms = FETCH_TIMEOUT_MS) {
       return Promise.race([
         fetch(url, opts),
         new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), ms))
       ]);
     }
+
     function setBanner(mode, extraText) {
       const banner = document.getElementById('switch-banner');
       const text = document.getElementById('switch-text');
@@ -454,20 +647,20 @@
         text.textContent = extraText || 'Server offline. Bitte Administrator kontaktieren.';
       }
     }
+
     function setMiniBars(loadPct, dlPct, ulPct) {
       document.getElementById('mini-load').style.width = Math.min(loadPct, 100) + '%';
       document.getElementById('mini-dl').style.width = Math.min(dlPct, 100) + '%';
       document.getElementById('mini-ul').style.width = Math.min(ulPct, 100) + '%';
     }
+
     function setSummaryMeta(ts) {
       const el = document.getElementById('summary-meta');
-      if (!ts) {
-        el.textContent = '';
-        return;
-      }
+      if (!ts) { el.textContent = ''; return; }
       const dt = new Date(ts);
       el.textContent = `Letzte Aktualisierung: ${dt.toLocaleTimeString('de-DE')}`;
     }
+
     async function loadStatus() {
       try {
         const res = await fetchWithTimeout(`${API_BASE}/status`);
@@ -483,9 +676,7 @@
         const ulPct = Math.min((speed.upload / 36) * 100, 100);
         const loadPct = Math.min(data.load_percent || 0, 100);
         const summaryEl = document.getElementById('summary-server');
-        summaryEl.textContent = switching
-          ? 'Server: Wechsel läuft…'
-          : `Server: ${vpn.current_server || 'Unbekannt'}`;
+        summaryEl.textContent = switching ? 'Server: Wechsel läuft…' : `Server: ${vpn.current_server || 'Unbekannt'}`;
         if (switching) setBanner('switching'); else setBanner('hidden');
         setMiniBars(loadPct, dlPct, ulPct);
         setSummaryMeta(lastSuccessTs);
@@ -532,11 +723,9 @@
             const loc = await probeLocation();
             if (loc && !loc.allowed) {
               extra = `<p><strong>Zugriff nur aus Deutschland oder Spanien möglich.</strong> Dein Standort: ${loc.city}, ${loc.country}${loc.vpn ? ' (VPN erkannt)' : ''}.</p>`;
-            }
-            else if (loc && loc.vpn) {
+            } else if (loc && loc.vpn) {
               extra = `<p>Hinweis: Möglicherweise nutzt du ein VPN – Verbindung könnte eingeschränkt sein.</p>`;
             }
-            // Bei DE/ES ohne VPN → KEIN Hinweis
           }
           const base = isOffline
             ? `<p><b>Server offline.</b> Bitte Administrator kontaktieren.</p>`
@@ -557,13 +746,12 @@
         }, 5000);
       }
     }
+
     async function getStatusSafe() {
       const res = await fetchWithTimeout(`${API_BASE}/status`, {}, FETCH_TIMEOUT_MS_STATUS);
       return res.json();
     }
-    function getSpeedTimestamp(data) {
-      return data?.vpn?.last_speedtest?.timestamp || null;
-    }
+
     async function runSpeedtest() {
       const btn = document.getElementById('speedtest-btn');
       setBtnState(btn, 'Wird geprüft…', true);
@@ -576,11 +764,7 @@
         const speed = before?.vpn?.last_speedtest;
         if (speed) {
           prevTs = speed.timestamp || null;
-          prevSpeed = {
-            download: speed.download || 0,
-            upload: speed.upload || 0,
-            ping: speed.ping || 0
-          };
+          prevSpeed = { download: speed.download || 0, upload: speed.upload || 0, ping: speed.ping || 0 };
         }
       } catch {}
       let pollCount = 0;
@@ -599,7 +783,7 @@
           btn.classList.remove('loading');
           setBtnState(btn, 'Läuft… (~60 s)', true);
           pollTimer = setInterval(() => {
-            pollCount++;
+            pollCountooo++;
             setBtnState(btn, `Läuft… (~60 s) (${pollCount * 2}s)`, true);
           }, SPEEDTEST_POLL_INTERVAL_MS);
           await pollForResult();
@@ -638,7 +822,6 @@
           btn.classList.remove('success', 'error', 'loading');
         }, 2000);
       }
-
       async function pollForResult() {
         const t0 = Date.now();
         let seenUpdate = false;
@@ -677,24 +860,27 @@
         }
       }
     }
+
     function setBtnState(btn, label, disabled) {
       btn.innerHTML = label;
       btn.disabled = !!disabled;
     }
+
     async function sendViaEmailJS(text) {
       return emailjs.send('service_i3ceboq', 'template_3iie047', {
         feedback: text,
         timestamp: new Date().toLocaleString('de-DE', { timeZone: 'Europe/Berlin' })
       });
     }
+
     async function sendDirect(btn, msg) {
       const orig = btn.getAttribute('data-orig') || btn.innerHTML;
-      setBtnState(btn, '📨 Sende…', true);
+      setBtnState(btn, 'Senden…', true);
       try {
         await sendViaEmailJS(msg);
-        setBtnState(btn, '✅ Danke für dein Feedback!', true);
+        setBtnState(btn, 'Danke für dein Feedback!', true);
       } catch (e) {
-        setBtnState(btn, '❌ Fehler – erneut versuchen?', false);
+        setBtnState(btn, 'Fehler – erneut versuchen?', false);
         return;
       }
       setTimeout(() => {
@@ -702,6 +888,7 @@
         btn.disabled = false;
       }, 1800);
     }
+
     function openModal(msg, req = false) {
       currentMsg = msg;
       requireText = req;
@@ -710,9 +897,11 @@
       document.getElementById('no-text-btn').style.display = req ? 'none' : 'block';
       document.getElementById('modal').style.display = 'block';
     }
+
     function closeModal() {
       document.getElementById('modal').style.display = 'none';
     }
+
     async function sendWithText(btnEl) {
       const txt = document.getElementById('extra-text').value.trim();
       if (requireText && !txt) {
@@ -721,35 +910,49 @@
       }
       const full = currentMsg + (txt ? ' – ' + txt : '');
       const orig = btnEl.innerHTML;
-      setBtnState(btnEl, '📨 Sende…', true);
+      setBtnState(btnEl, 'Senden…', true);
       try {
         await sendViaEmailJS(full);
-        setBtnState(btnEl, '✅ Danke für dein Feedback!', true);
+        setBtnState(btnEl, 'Danke für dein Feedback!', true);
         setTimeout(() => {
           closeModal();
           btnEl.innerHTML = orig;
           btnEl.disabled = false;
         }, 900);
       } catch (e) {
-        setBtnState(btnEl, '❌ Fehler – erneut?', false);
+        setBtnState(btnEl, 'Fehler – erneut?', false);
       }
     }
+
     async function sendWithoutText(btnEl) {
       const orig = btnEl.innerHTML;
-      setBtnState(btnEl, '📨 Sende…', true);
+      setBtnState(btnEl, 'Senden…', true);
       try {
         await sendViaEmailJS(currentMsg);
-        setBtnState(btnEl, '✅ Danke für dein Feedback!', true);
+        setBtnState(btnEl, 'Danke für dein Feedback!', true);
         setTimeout(() => {
           closeModal();
           btnEl.innerHTML = orig;
           btnEl.disabled = false;
         }, 900);
       } catch (e) {
-        setBtnState(btnEl, '❌ Fehler – erneut?', false);
+        setBtnState(btnEl, 'Fehler – erneut?', false);
       }
     }
-    // Init / Polling
+
+    // FAQ Live-Suche
+    document.getElementById('faq-search').addEventListener('input', function(e) {
+      const term = e.target.value.toLowerCase();
+      const items = document.querySelectorAll('.faq-item');
+      items.forEach(item => {
+        const question = item.querySelector('summary').textContent.toLowerCase();
+        const answer = item.querySelector('.faq-answer').textContent.toLowerCase();
+        const visible = question.includes(term) || answer.includes(term);
+        item.style.display = visible ? '' : 'none';
+      });
+    });
+
+    // Init
     loadStatus();
     setInterval(loadStatus, 20000);
   </script>
