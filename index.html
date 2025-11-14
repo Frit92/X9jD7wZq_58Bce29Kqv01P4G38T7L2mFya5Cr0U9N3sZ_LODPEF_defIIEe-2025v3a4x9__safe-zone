@@ -874,5 +874,13 @@
     loadStatus();
     setInterval(loadStatus, 20000);
   </script>
+
+  <script>
+  const VERSION = 'v1.1.0'; // Jedes Mal ändern!
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('sw.js?v=' + VERSION)
+      .catch(err => console.log('SW failed:', err));
+  }
+</script>
 </body>
 </html>
