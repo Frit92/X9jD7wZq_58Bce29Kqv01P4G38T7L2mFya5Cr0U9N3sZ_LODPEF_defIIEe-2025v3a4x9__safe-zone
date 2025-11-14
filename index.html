@@ -159,49 +159,84 @@
     .subtle-btn { background: #2a2a2a; color: #dddddd; border: 1px solid #444; }
     .subtle-btn:hover { background: #353535; color: #ffffff; }
 
-    /* === FAQ SECTION === */
-    #faq-section {
-      width: 95%;
-      max-width: 420px;
-      background: var(--box-bg);
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      padding: 0.8em 1em;
-      margin-top: 0.5em;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.3);
-    }
-    #faq-search {
-      width: 100%; padding: 0.7em; background: #333; color: #fff;
-      border: 1px solid #555; border-radius: 0.6em; margin-bottom: 0.8em;
-      font-size: 0.95em;
-    }
-    .faq-item {
-      margin-bottom: 0.6em;
-    }
-    .faq-item > summary {
-      list-style: none;
-      cursor: pointer;
-      font-weight: 600;
-      font-size: 1.02em;
-      padding: 0.75em 0;
-      display: flex;
-      align-items: center;
-      gap: 0.5em;
-      border-bottom: 1px solid #333;
-    }
-    .faq-item > summary::-webkit-details-marker { display: none; }
-    .faq-item[open] > summary { border-bottom: none; padding-bottom: 0.5em; }
-    .faq-item[open] > summary .chev { transform: rotate(90deg); }
-    .faq-answer {
-      font-size: 0.94em;
-      line-height: 1.55;
-      padding: 0.8em 0 1em 1.8em;
-      border-bottom: 1px solid #333;
-    }
-    .faq-answer:last-child { border-bottom: none; }
-    .faq-answer ol, .faq-answer ul { margin: 0.4em 0; padding-left: 1.4em; }
-    .faq-answer li { margin-bottom: 0.3em; }
-    .faq-answer a { color: var(--blue); text-decoration: underline; }
+/* === FAQ SECTION === */
+#faq-section {
+  width: 95%;
+  max-width: 420px;
+  background: var(--box-bg);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 0.8em 1em;
+  margin-top: 0.5em;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+  text-align: left;            /* NEU: Alles in der FAQ linksbündig */
+}
+
+#faq-search {
+  width: 100%;
+  padding: 0.7em;
+  background: #333;
+  color: #fff;
+  border: 1px solid #555;
+  border-radius: 0.6em;
+  margin-bottom: 0.8em;
+  font-size: 0.95em;
+}
+
+.faq-item {
+  margin-bottom: 0.6em;
+}
+
+.faq-item > summary {
+  list-style: none;
+  cursor: pointer;
+  font-weight: 700;            /* leicht verstärkt: Frage fett(er) */
+  font-size: 1.02em;
+  padding: 0.75em 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+  border-bottom: 1px solid #333;
+}
+
+.faq-item > summary::-webkit-details-marker { 
+  display: none; 
+}
+
+.faq-item[open] > summary { 
+  border-bottom: none; 
+  padding-bottom: 0.5em; 
+}
+
+.faq-item[open] > summary .chev { 
+  transform: rotate(90deg); 
+}
+
+.faq-answer {
+  font-size: 0.94em;
+  line-height: 1.55;
+  padding: 8px 0 12px 24px;
+  border-bottom: 1px solid #333;
+  text-align: left;            /* explizit: Antworten auch links */
+}
+
+.faq-answer:last-child { 
+  border-bottom: none; 
+}
+
+.faq-answer ol, .faq-answer ul { 
+  margin: 0.4em 0; 
+  padding-left: 1.4em; 
+}
+
+.faq-answer li { 
+  margin-bottom: 0.3em; 
+}
+
+.faq-answer a { 
+  color: var(--blue); 
+  text-decoration: underline; 
+}
 
     @media (max-width: 480px) {
       h1 { font-size: 1.5em; }
@@ -325,7 +360,7 @@
 
     <!-- Aufklappbare FAQ-Einträge -->
     <details class="faq-item">
-      <summary><span class="chev">➡️</span> Der Film oder die Serie ruckelt – was tun?</summary>
+      <summary><span class="chev">▶</span> Der Film oder die Serie ruckelt – was tun?</summary>
       <div class="faq-answer">
         1. <b>Qualität prüfen:</b> Direkt-Play? Mind. 20 Mbit/s nötig. Wenn es ruckelt, Bitrate reduzieren (z. B. 8 → 5 → 3 Mbit/s), bis es flüssig läuft.<br>
         2. <b>Server-Auslastung prüfen:</b> Oben auf dieser Seite siehst du aktuelle Streams/Downloads. Ab 4 gleichzeitigen Nutzern kann es ruckeln.<br>
