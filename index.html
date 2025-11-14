@@ -289,7 +289,7 @@
   </details>
 
   <!-- Speedtest Button -->
-  <button id="speedtest-btn" class="speedtest-btn" onclick="runSpeedtest()">Speedtest starten</button>
+  <button id="speedtest-btn" class="speedtest-btn" onclick="runSpeedtest()">⏱️ Speedtest starten</button>
 
   <!-- FAQ Button (unter Speedtest, grün) -->
   <button class="faq-jump-btn" onclick="document.getElementById('faq-section').scrollIntoView({behavior:'smooth'})">
@@ -352,7 +352,7 @@
     </div>
   </div>
 
-  <button class="feedback-btn" style="margin-top:0.6em;padding:1em;width:95%;max-width:420px;" onclick="openModal('Anderes Problem', true)">Anderes Problem</button>
+  <button class="feedback-btn" style="margin-top:0.6em;padding:1em;width:95%;max-width:420px;" onclick="openModal('➕ Anderes Problem', true)">➕ Anderes Problem</button>
 
   <!-- FAQ Section (aufklappbar!) -->
   <section id="faq-section">
@@ -472,9 +472,9 @@
     <h3 id="modal-title"></h3>
     <textarea id="extra-text" placeholder="Zusätzliche Beschreibung…"></textarea>
     <div class="modal-buttons">
-      <button id="btn-with-text" class="feedback-btn primary-full" onclick="sendWithText(this)">Senden mit Text</button>
+      <button id="btn-with-text" class="feedback-btn primary-full" onclick="sendWithText(this)">📨 Senden mit Text</button>
       <div class="bottom-row">
-        <button id="no-text-btn" class="subtle-btn" onclick="sendWithoutText(this)">Ohne Text senden</button>
+        <button id="no-text-btn" class="subtle-btn" onclick="sendWithoutText(this)">📨 Ohne Text senden</button>
         <button class="feedback-btn" style="background:#666;" onclick="closeModal()">Abbrechen</button>
       </div>
     </div>
@@ -699,20 +699,20 @@
         } catch {}
         if (data && data.success === true) {
           btn.classList.remove('loading');
-          setBtnState(btn, 'Läuft… (~60 s)', true);
+          setBtnState(btn, '⌛ Läuft… (~60 s)', true);
           pollTimer = setInterval(() => {
             pollCount++;
-            setBtnState(btn, `Läuft… (~60 s) (${pollCount * 2}s)`, true);
+            setBtnState(btn, `⌛ Läuft… (~60 s) (${pollCount * 2}s)`, true);
           }, SPEEDTEST_POLL_INTERVAL_MS);
           await pollForResult();
           return;
         }
         if (res.ok || res.status === 202) {
           btn.classList.remove('loading');
-          setBtnState(btn, 'Läuft… (~60 s)', true);
+          setBtnState(btn, '⌛ Läuft… (~60 s)', true);
           pollTimer = setInterval(() => {
             pollCount++;
-            setBtnState(btn, `Läuft… (~60 s) (${pollCount * 2}s)`, true);
+            setBtnState(btn, `⌛ Läuft… (~60 s) (${pollCount * 2}s)`, true);
           }, SPEEDTEST_POLL_INTERVAL_MS);
           await pollForResult();
           return;
@@ -721,10 +721,10 @@
       } catch (e) {
         if (String(e.message).toLowerCase().includes('timeout')) {
           btn.classList.remove('loading');
-          setBtnState(btn, 'Läuft… (Timeout, prüfe Ergebnis)', true);
+          setBtnState(btn, '⌛ Läuft… (Timeout, prüfe Ergebnis)', true);
           pollTimer = setInterval(() => {
             pollCount++;
-            setBtnState(btn, `Läuft… (~63 s) (${pollCount * 2}s)`, true);
+            setBtnState(btn, `⌛ Läuft… (~63 s) (${pollCount * 2}s)`, true);
           }, SPEEDTEST_POLL_INTERVAL_MS);
           await pollForResult();
           return;
@@ -736,7 +736,7 @@
       } finally {
         setTimeout(() => {
           if (pollTimer) clearInterval(pollTimer);
-          setBtnState(btn, 'Speedtest starten', false);
+          setBtnState(btn, '⏱️ Speedtest starten', false);
           btn.classList.remove('success', 'error', 'loading');
         }, 2000);
       }
@@ -763,7 +763,7 @@
             if (tsChanged || valuesChanged || (!lastSpeed && currentSpeed.download > 0)) {
               if (pollTimer) clearInterval(pollTimer);
               btn.classList.add('success');
-              setBtnState(btn, 'Erfolgreich! Danke!', true);
+              setBtnState(btn, '✅ Erfolgreich! Danke!', true);
               await loadStatus();
               seenUpdate = true;
               break;
@@ -796,9 +796,9 @@
       setBtnState(btn, 'Sende…', true);
       try {
         await sendViaEmailJS(msg);
-        setBtnState(btn, 'Danke für dein Feedback!', true);
+        setBtnState(btn, '✅ Danke für dein Feedback!', true);
       } catch (e) {
-        setBtnState(btn, 'Fehler – erneut versuchen?', false);
+        setBtnState(btn, '✖ Fehler – erneut versuchen?', false);
         return;
       }
       setTimeout(() => {
