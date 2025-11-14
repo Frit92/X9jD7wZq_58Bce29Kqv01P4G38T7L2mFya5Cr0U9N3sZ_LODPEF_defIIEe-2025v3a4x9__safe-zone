@@ -882,5 +882,34 @@
       .catch(err => console.log('SW failed:', err));
   }
 </script>
+  <div id="update-banner" style="
+  display:none;
+  position:fixed;
+  left:50%;
+  bottom:16px;
+  transform:translateX(-50%);
+  background:#222;
+  color:#fff;
+  border:1px solid #444;
+  border-radius:999px;
+  padding:0.5em 1em;
+  font-size:0.9em;
+  box-shadow:0 2px 8px rgba(0,0,0,0.5);
+  z-index:9999;
+">
+  Neue Version von Fritflix Feedback verfügbar.
+  <button id="update-reload-btn" style="
+    margin-left:0.7em;
+    padding:0.3em 0.8em;
+    border:none;
+    border-radius:999px;
+    background:#e50914;
+    color:#fff;
+    font-weight:600;
+    cursor:pointer;
+  ">
+    Aktualisieren
+  </button>
+</div>
 </body>
 </html>
