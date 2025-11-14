@@ -251,14 +251,53 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Fritflix Feedback">
-  <script>
-    if ('serviceWorker' in navigator) {
-      window.addEventListener('load', () => {
-        navigator.serviceWorker.register('sw.js')
-          .catch(err => console.log('SW failed:', err));
+<script>
+const VERSION = 'v1.1.0'; // ← Bei jedem Update ändern!
+
+// === UPDATE BANNER STEUERUNG ===
+if ('serviceWorker' in navigator) {
+  let newWorker;
+  const updateBanner = document.getElementById('update-banner');
+  const reloadBtn = document.getElementById('update-reload-btn');
+
+  function showUpdateBanner() {
+    updateBanner.style.display = 'block';
+    reloadBtn.onclick = () => {
+      if (newWorker) {
+        newWorker.postMessage({ type: 'SKIP_WAITING' });
+      }
+    };
+  }
+
+  // Nur EINE Registrierung mit Cache-Buster
+  navigator.serviceWorker.register('sw.js?v=' + VERSION)
+    .then(reg => {
+      console.log('SW registriert:', reg.scope);
+
+      // Prüfe sofort, ob ein SW wartet
+      if (reg.waiting) {
+        newWorker = reg.waiting;
+        showUpdateBanner();
+      }
+
+      // Neuer SW wird installiert
+      reg.addEventListener('updatefound', () => {
+        newWorker = reg.installing;
+        newWorker.addEventListener('statechange', () => {
+          if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+            showUpdateBanner(); // Nur wenn wirklich ein Update da ist!
+          }
+        });
       });
-    }
-  </script>
+    })
+    .catch(err => console.error('SW Registrierung fehlgeschlagen:', err));
+
+  // Nach Update → Seite neu laden
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    window.location.reload();
+  });
+}
+</script>
 </head>
 <body>
   <h1>Feedback zu Fritflix</h1>
@@ -911,51 +950,5 @@
     Aktualisieren
   </button>
 </div>
-  <script>
-// === UPDATE BANNER STEUERUNG ===
-if ('serviceWorker' in navigator) {
-  let newWorker;
-  const updateBanner = document.getElementById('update-banner');
-  const reloadBtn = document.getElementById('update-reload-btn');
-
-  // Wird aufgerufen, wenn neuer SW wartet
-  function showUpdateBanner() {
-    updateBanner.style.display = 'block';
-    reloadBtn.onclick = () => {
-      if (newWorker) {
-        newWorker.postMessage({ type: 'SKIP_WAITING' });
-      }
-    };
-  }
-
-  // Beim Laden: prüfen, ob neuer SW wartet
-  navigator.serviceWorker.ready.then(reg => {
-    if (reg.waiting) {
-      newWorker = reg.waiting;
-      showUpdateBanner();
-    }
-  });
-
-  // Neuer SW gefunden → warten lassen
-  navigator.serviceWorker.addEventListener('controllerchange', () => {
-    window.location.reload();
-  });
-
-  // Registrierung mit Update-Check
-  navigator.serviceWorker.register('sw.js?v=' + VERSION)
-    .then(reg => {
-      // Prüfe, ob neuer SW installiert wurde
-      reg.addEventListener('updatefound', () => {
-        newWorker = reg.installing;
-        newWorker.addEventListener('statechange', () => {
-          if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-            showUpdateBanner(); // Neuer SW wartet!
-          }
-        });
-      });
-    })
-    .catch(err => console.log('SW failed:', err));
-}
-</script>
 </body>
 </html>
