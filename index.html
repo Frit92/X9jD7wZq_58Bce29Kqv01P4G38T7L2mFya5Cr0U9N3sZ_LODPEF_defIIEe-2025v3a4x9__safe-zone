@@ -911,5 +911,51 @@
     Aktualisieren
   </button>
 </div>
+  <script>
+// === UPDATE BANNER STEUERUNG ===
+if ('serviceWorker' in navigator) {
+  let newWorker;
+  const updateBanner = document.getElementById('update-banner');
+  const reloadBtn = document.getElementById('update-reload-btn');
+
+  // Wird aufgerufen, wenn neuer SW wartet
+  function showUpdateBanner() {
+    updateBanner.style.display = 'block';
+    reloadBtn.onclick = () => {
+      if (newWorker) {
+        newWorker.postMessage({ type: 'SKIP_WAITING' });
+      }
+    };
+  }
+
+  // Beim Laden: prüfen, ob neuer SW wartet
+  navigator.serviceWorker.ready.then(reg => {
+    if (reg.waiting) {
+      newWorker = reg.waiting;
+      showUpdateBanner();
+    }
+  });
+
+  // Neuer SW gefunden → warten lassen
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    window.location.reload();
+  });
+
+  // Registrierung mit Update-Check
+  navigator.serviceWorker.register('sw.js?v=' + VERSION)
+    .then(reg => {
+      // Prüfe, ob neuer SW installiert wurde
+      reg.addEventListener('updatefound', () => {
+        newWorker = reg.installing;
+        newWorker.addEventListener('statechange', () => {
+          if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+            showUpdateBanner(); // Neuer SW wartet!
+          }
+        });
+      });
+    })
+    .catch(err => console.log('SW failed:', err));
+}
+</script>
 </body>
 </html>
