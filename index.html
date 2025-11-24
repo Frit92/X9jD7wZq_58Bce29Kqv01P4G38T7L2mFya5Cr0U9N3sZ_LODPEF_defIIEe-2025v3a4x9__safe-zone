@@ -252,7 +252,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Fritflix Feedback">
 <script>
-const VERSION = 'v1.1.2'; // ← Bei jedem Update ändern!
+const VERSION = 'v1.1.3'; // ← Bei jedem Update ändern!
 
 // === UPDATE BANNER STEUERUNG ===
 if ('serviceWorker' in navigator) {
@@ -403,114 +403,193 @@ if ('serviceWorker' in navigator) {
   <section id="faq-section">
     <input type="text" id="faq-search" placeholder="FAQ durchsuchen…" onkeyup="filterFAQ()">
 
-    <!-- Aufklappbare FAQ-Einträge -->
-    <details class="faq-item">
-      <summary><span class="chev">▶</span> Der Film oder die Serie ruckelt – was tun?</summary>
-      <div class="faq-answer">
-        1. <b>Qualität prüfen:</b> Direkt-Play? Mind. 20 Mbit/s nötig. Wenn es ruckelt, Bitrate reduzieren (z. B. 8 → 5 → 3 Mbit/s), bis es flüssig läuft.<br>
-        2. <b>Server-Auslastung prüfen:</b> Oben auf dieser Seite siehst du aktuelle Streams/Downloads. Ab 4 gleichzeitigen Nutzern kann es ruckeln.<br>
-        3. <b>Speedtest durchführen:</b> Hier auf der Seite (Server-Seite) oder bei dir selbst, z. B. über <a href="https://www.google.com/search?q=speedtest" target="_blank">Google Speedtest</a>. Liegt der Server-Upload oder dein Download unter 20 Mbit/s → Admin informieren (Serverwechsel oder zur vollen Stunde warten – automatischer Wechsel).<br>
-        4. <b>App neu starten.</b> Hilft nichts? → Admin Bescheid sagen.
-      </div>
-    </details>
+    <!-- FAQ: Die wichtigsten Anforderungen -->
+<details class="faq-item">
+  <summary><span class="chev">▶</span> 📋 Die wichtigsten Anforderungen für flüssiges Streaming</summary>
+  <div class="faq-answer">
+    • <b>Download bei dir:</b> mind. 30 Mbit/s stabil<br>
+    • <b>Upload (Server-Seite):</b> über 20 Mbit/s<br>
+    • <b>Latenz (Ping):</b> unter 50 ms<br>
+    • <b>Bitrate im Player:</b> 3–10 Mbit/s (bei 4K meist ca. 10 Mbit/s)<br>
+    • <b>Verbindung:</b> stabiles WLAN (besser 5 GHz) oder LAN-Kabel<br><br>
+    🔽 Wenn etwas davon nicht passt → Ruckeln/Abbrüche möglich
+  </div>
+</details>
 
-    <details class="faq-item">
-      <summary><span class="chev">▶</span> Ich kann mich nicht anmelden</summary>
-      <div class="faq-answer">
-        1. <b>Richtiges Passwort?</b> Groß-/Kleinschreibung beachten.<br>
-        2. <b>Anderes Gerät angemeldet?</b> Oft kommt die Meldung „Keine Berechtigung“. Auf dem anderen Gerät abmelden → nur 1 Sitzung erlaubt.<br>
-        3. <b>Profilbild grau?</b> Passwort 3× falsch eingegeben → Admin informieren.
-      </div>
-    </details>
+<!-- FAQ: Ruckeln -->
+<details class="faq-item">
+  <summary><span class="chev">▶</span> 🎬 Der Film oder die Serie ruckelt – was tun?</summary>
+  <div class="faq-answer">
+    1. <b>Qualität prüfen:</b> Läuft Direct Play? Qualität auf Auto oder mind. 20 Mbit/s?<br>
+    → Ruckelt es trotzdem → Bitrate schrittweise senken (8 → 5 → 3 Mbit/s).<br>
+    <b>Tipp bei 4K:</b> Oft erst bei ca. 10 Mbit/s flüssig.<br><br>
 
-    <details class="faq-item">
-      <summary><span class="chev">▶</span> Ich finde den Film/die Serie nicht</summary>
-      <div class="faq-answer">
-        1. <b>Schreibweise prüfen:</b> Genau eingeben, keine Leerzeichen vorne/hinten. Jellyfin kennt deutsche & englische Titel. Achtung: Umlaute (ä, ö, ü) manchmal problematisch → anderes Wort aus dem Titel nutzen.<br>
-        2. <b>Nicht vorhanden?</b> → Als Wunsch an den Admin schicken.
-      </div>
-    </details>
+    2. <b>Server-Auslastung prüfen:</b> Oben auf der Seite siehst du aktive Streams.<br>
+    → Ab 3–4 gleichzeitigen Nutzern kann es eng werden.<br><br>
 
-    <details class="faq-item">
-      <summary><span class="chev">▶</span> Ich kann das Intro nicht überspringen</summary>
-      <div class="faq-answer">
-        1. Button „Intro überspringen“ erscheint (bei Android TV: Kreis mit „überspringen“). Darauf klicken.<br>
-        → Intro-Skip wird automatisch generiert – nicht immer perfekt. Alternativ: selbst vorspulen.
-      </div>
-    </details>
+    3. <b>Server-Speedtest starten:</b> Button oben klicken.<br>
+    → Upload unter 20 Mbit/s? → Admin informieren oder zur vollen Stunde warten (automatischer Serverwechsel).<br><br>
 
-    <details class="faq-item">
-      <summary><span class="chev">▶</span> Der Film startet nicht</summary>
-      <div class="faq-answer">
-        1. <b>Geduld:</b> Besonders 4K-Filme brauchen bis zu 5 Min. Vorlaufzeit.<br>
-        2. Jellyfin neu starten oder hier Server-Speed/Load prüfen.
-      </div>
-    </details>
+    4. <b>Eigener Speedtest:</b> Button „Eigener Speedtest“ oder Google Speedtest.<br>
+    → Unter 30 Mbit/s Download oder über 50 ms Latenz = dein Anschluss ist das Problem.<br><br>
 
-    <details class="faq-item">
-      <summary><span class="chev">▶</span> Fehlermeldung: „Nicht kompatibel mit Client/Abspielgerät“</summary>
-      <div class="faq-answer">
-        1. Meist irreführend → Film hat zu lange geladen. Prüfe deine Internetgeschwindigkeit (Speedtest > 20 Mbit/s Download).<br>
-        2. Film neu laden.<br>
-        3. Auflösung reduzieren (Jellyfin merkt sich die Einstellung).<br>
-        4. Gerät wirklich inkompatibel? → anderes Gerät testen.
-      </div>
-    </details>
+    5. <b>10 Minuten warten</b> – kurzzeitige Schwankungen sind normal.<br>
+    6. <b>App neu starten.</b><br>
+    ➤ Immer noch Probleme? → Admin kontaktieren.
+  </div>
+</details>
 
-    <details class="faq-item">
-      <summary><span class="chev">▶</span> Fehlermeldung: „Kann nicht wiedergegeben werden“</summary>
-      <div class="faq-answer">
-        1. Serverseitig: Externe Festplatte nicht erkannt → Admin kontaktieren.
-      </div>
-    </details>
+<!-- FAQ: Häufige Abbrüche -->
+<details class="faq-item">
+  <summary><span class="chev">▶</span> ⚡ Ich habe häufig Abbrüche – was hilft?</summary>
+  <div class="faq-answer">
+    1. WLAN optimieren (näher am Router, 5 GHz, weniger Wände)<br>
+    2. Gerät per LAN-Kabel anstatt WLAN nutzen<br>
+    3. Bitrate reduzieren<br>
+    4. Fire TV / Android TV / modernes Handy statt altem Gerät oder Browser nutzen<br>
+    5. Server-Auslastung & Speedtests prüfen<br>
+    6. App statt Browser verwenden → immer stabiler
+  </div>
+</details>
 
-    <details class="faq-item">
-      <summary><span class="chev">▶</span> Ich sehe keine Sammlungen (Klick auf Sammlung → nichts)</summary>
-      <div class="faq-answer">
-        Sammlungen laden bis zu 15 Sek. → Geduld. Nach 30 Sek. nichts? Seite neu laden. Sonst: Admin kontaktieren.
-      </div>
-    </details>
+<!-- FAQ: Anmeldung Probleme -->
+<details class="faq-item">
+  <summary><span class="chev">▶</span> 🔐 Ich kann mich nicht anmelden</summary>
+  <div class="faq-answer">
+    1. <b>Passwort korrekt?</b> Groß-/Kleinschreibung beachten.<br>
+    2. <b>Noch auf einem anderen Gerät eingeloggt?</b> → Dort abmelden (nur 1 Gerät gleichzeitig erlaubt).<br>
+    3. <b>Profilbild grau?</b> Konto nach 3× falschem Passwort gesperrt → Admin informieren.<br>
+    4. Immer noch nicht? → Admin melden.
+  </div>
+</details>
 
-    <details class="faq-item">
-      <summary><span class="chev">▶</span> Die Startseite lädt nicht mehr</summary>
-      <div class="faq-answer">
-        App komplett neu installieren.
-      </div>
-    </details>
+<!-- FAQ: Wie anmelden -->
+<details class="faq-item">
+  <summary><span class="chev">▶</span> 🚪 Wie melde ich mich an?</summary>
+  <div class="faq-answer">
+    1. Jellyfin-App installieren oder Browser öffnen<br>
+    2. Server-Adresse eingeben:<br>
+    → <b>https://fritflix.dedyn.io:33420</b><br>
+    → iPhone/iPad: <b>https://app.fritflix.dedyn.io:33420</b><br>
+    3. Im Browser: „Generalbenutzer“ + Passwort aus der WhatsApp-Gruppe eingeben<br>
+    4. Dein Profil auswählen → privates Passwort eingeben<br>
+    5. Losstreamen!
+  </div>
+</details>
 
-    <details class="faq-item">
-      <summary><span class="chev">▶</span> Wo finde ich die Apps?</summary>
-      <div class="faq-answer">
-        • Smart TV: App Store → „Jellyfin“<br>
-        • Android / iOS: Play Store / App Store → „Jellyfin“<br>
-        • Fire TV Stick: Amazon Appstore → „Jellyfin“<br>
-        • Apple TV: „Swiftfin“<br>
-        • PC: Jellyfin Media Player → <a href="https://github.com/jellyfin/jellyfin-media-player/releases/tag/v1.12.0" target="_blank">Download (richtige Version wählen)</a>
-      </div>
-    </details>
+<!-- FAQ: Film nicht gefunden -->
+<details class="faq-item">
+  <summary><span class="chev">▶</span> 🔍 Ich finde einen Film/Serie nicht</summary>
+  <div class="faq-answer">
+    1. Keine Leerzeichen vorne/hinten im Suchfeld<br>
+    2. Deutsche & englische Titel werden erkannt<br>
+    3. Umlaute manchmal problematisch → anderes Wort aus dem Titel probieren<br>
+    4. Nicht vorhanden? → Wunsch an Admin schicken
+  </div>
+</details>
 
-    <details class="faq-item">
-      <summary><span class="chev">▶</span> Wie melde ich mich an?</summary>
-      <div class="faq-answer">
-        1. Jellyfin-App auf TV, Tablet oder Fire TV Stick installieren. PC/Smartphone: Browser möglich.<br>
-        2. Server eingeben:<br>
-        → <code>https://fritflix.dedyn.io:33420</code><br>
-        → iPhone/iPad: <code>https://app.fritflix.dedyn.io:33420</code><br>
-        3. Browser: Generalbenutzer + Passwort (aus WhatsApp-Gruppe).<br>
-        4. Deinen Namen auswählen + Passwort (privat geschickt) → einloggen.<br>
-        5. Film/Serie auswählen → Stream starten
-      </div>
-    </details>
+<!-- FAQ: Film startet nicht -->
+<details class="faq-item">
+  <summary><span class="chev">▶</span> ⏳ Der Film startet nicht / lädt ewig</summary>
+  <div class="faq-answer">
+    1. <b>Geduld:</b> 4K-Filme brauchen manchmal bis zu 5 Minuten Vorlauf<br>
+    2. Jellyfin-App neu starten<br>
+    3. Server-Speedtest & Auslastung prüfen<br>
+    4. Eigenen Speedtest machen
+  </div>
+</details>
 
-    <details class="faq-item">
-      <summary><span class="chev">▶</span> Der Server ist offline – ich kann mich nicht verbinden</summary>
-      <div class="faq-answer">
-        1. <b>VPN aus?</b> Nur in Deutschland & Spanien erlaubt.<br>
-        2. Zur vollen Stunde: VPN-Check → bis zu 15 Min. offline. Status hier prüfen.<br>
-        3. Länger offline? → Admin kontaktieren.
-      </div>
-    </details>
-  </section>
+<!-- FAQ: Nicht kompatibel -->
+<details class="faq-item">
+  <summary><span class="chev">▶</span> Fehlermeldung: „Nicht kompatibel mit Client/Abspielgerät“</summary>
+  <div class="faq-answer">
+    Meist nur ein Ladeproblem → zu langsam.<br>
+    ➤ Bitrate senken + neu laden<br>
+    ➤ Anderes Gerät testen
+  </div>
+</details>
+
+<!-- FAQ: Kann nicht wiedergegeben werden -->
+<details class="faq-item">
+  <summary><span class="chev">▶</span> Fehlermeldung: „Kann nicht wiedergegeben werden“</summary>
+  <div class="faq-answer">
+    Externe Festplatte wurde kurz nicht erkannt → Datei „verschwunden“.<br>
+    ➤ Admin informieren
+  </div>
+</details>
+
+<!-- FAQ: Server offline -->
+<details class="faq-item">
+  <summary><span class="chev">▶</span> Server ist offline</summary>
+  <div class="faq-answer">
+    1. VPN komplett ausschalten (nur DE & ES erlaubt)<br>
+    2. Zur vollen Stunde: automatischer Check → bis zu 15 Min offline<br>
+    3. Länger als 20 Min offline → Admin melden
+  </div>
+</details>
+
+<!-- FAQ: Intro überspringen -->
+<details class="faq-item">
+  <summary><span class="chev">▶</span> Intro lässt sich nicht überspringen</summary>
+  <div class="faq-answer">
+    • Button „Intro überspringen“ erscheint automatisch (Android TV: Kreis mit Text)<br>
+    • Wird automatisch generiert → nicht immer 100 % perfekt<br>
+    → Notfalls manuell vorspulen
+  </div>
+</details>
+
+<!-- FAQ: Falsche Sprache -->
+<details class="faq-item">
+  <summary><span class="chev">▶</span> Falsche Sprache wird abgespielt</summary>
+  <div class="faq-answer">
+    1. Über Noten-/Zahnrad-Symbol Tonspur wechseln<br>
+    2. Andere Tonspur ausprobieren (manchmal falsch benannt)<br>
+    3. Hilft nicht → Bitrate auf 5 Mbit/s senken und nochmal probieren<br>
+    4. Immer noch falsch → Admin melden
+  </div>
+</details>
+
+<!-- FAQ: Ton asynchron -->
+<details class="faq-item">
+  <summary><span class="chev">▶</span> Ton ist asynchron</summary>
+  <div class="faq-answer">
+    • Im Browser normal → lieber die App nutzen<br>
+    • Auch in der App asynchron → Admin melden
+  </div>
+</details>
+
+<!-- FAQ: Untertitel Probleme -->
+<details class="faq-item">
+  <summary><span class="chev">▶</span> Untertitel fehlen oder werden trotz „Aus“ angezeigt</summary>
+  <div class="faq-answer">
+    • 1–2 Minuten warten (laden verzögert)<br>
+    • Forced = nur Fremdsprache, Full = komplett<br>
+    • Eingebrannte Untertitel = nicht abschaltbar<br>
+    • Bug nach Umschalten → Film einfach neu starten<br>
+    • Immer noch falsch/fehlend → Admin melden
+  </div>
+</details>
+
+<!-- FAQ: Apps -->
+<details class="faq-item">
+  <summary><span class="chev">▶</span> Wo finde ich die richtigen Apps?</summary>
+  <div class="faq-answer">
+    • Smart TV → App Store → Jellyfin<br>
+    • Android / iOS → Jellyfin<br>
+    • Fire TV Stick → Jellyfin<br>
+    • Apple TV → Swiftfin<br>
+    • PC → Jellyfin Media Player (GitHub)
+  </div>
+</details>
+
+<!-- FAQ: Browser Bug Generalnutzer -->
+<details class="faq-item">
+  <summary><span class="chev">▶</span> Im Browser immer wieder Generalnutzer-Anmeldung</summary>
+  <div class="faq-answer">
+    Bekannter Bug nach Updates.<br>
+    ➤ Admin informieren – wird in 2 Minuten gefixt
+  </div>
+</details>
 
   <!-- Modal -->
   <div id="modal">
