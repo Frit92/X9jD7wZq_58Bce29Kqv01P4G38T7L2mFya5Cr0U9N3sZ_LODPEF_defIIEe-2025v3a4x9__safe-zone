@@ -252,7 +252,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Fritflix Feedback">
 <script>
-const VERSION = 'v1.1.0'; // ← Bei jedem Update ändern!
+const VERSION = 'v1.1.1'; // ← Bei jedem Update ändern!
 
 // === UPDATE BANNER STEUERUNG ===
 if ('serviceWorker' in navigator) {
@@ -328,7 +328,13 @@ if ('serviceWorker' in navigator) {
   </details>
 
   <!-- Speedtest Button -->
-  <button id="speedtest-btn" class="speedtest-btn" onclick="runSpeedtest()">⏱️ Speedtest starten</button>
+  <button id="speedtest-btn" class="speedtest-btn" onclick="runSpeedtest()">⏱️ Speedtest (Server) starten</button>
+  <button id="client-speedtest-btn"
+        class="speedtest-btn"
+        style="margin-top:0.4em; opacity:0.95;"
+        onclick="openClientSpeedtest()">
+  📶 Eigener Speedtest (deine Leitung)
+</button>
 
   <!-- FAQ Button (unter Speedtest, grün) -->
   <button class="faq-jump-btn" onclick="document.getElementById('faq-section').scrollIntoView({behavior:'smooth'})">
@@ -775,7 +781,7 @@ if ('serviceWorker' in navigator) {
       } finally {
         setTimeout(() => {
           if (pollTimer) clearInterval(pollTimer);
-          setBtnState(btn, '⏱️ Speedtest starten', false);
+          setBtnState(btn, '⏱️ Speedtest (Server) starten', false);
           btn.classList.remove('success', 'error', 'loading');
         }, 2000);
       }
@@ -818,6 +824,12 @@ if ('serviceWorker' in navigator) {
       }
     }
 
+    function openClientSpeedtest() {
+  // Öffnet Googles eingebauten Speedtest in neuem Tab
+  const url = 'https://www.google.com/search?q=speedtest';
+  window.open(url, '_blank', 'noopener');
+}
+    
     function setBtnState(btn, label, disabled) {
       btn.innerHTML = label;
       btn.disabled = !!disabled;
@@ -914,13 +926,6 @@ if ('serviceWorker' in navigator) {
     setInterval(loadStatus, 20000);
   </script>
 
-  <script>
-  const VERSION = 'v1.1.0'; // Jedes Mal ändern!
-  if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('sw.js?v=' + VERSION)
-      .catch(err => console.log('SW failed:', err));
-  }
-</script>
   <div id="update-banner" style="
   display:none;
   position:fixed;
