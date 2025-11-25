@@ -252,7 +252,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Fritflix Feedback">
 <script>
-const VERSION = 'v1.1.4'; // ← Bei jedem Update ändern!
+const VERSION = 'v1.1.5'; // ← Bei jedem Update ändern!
 
 // === UPDATE BANNER STEUERUNG ===
 if ('serviceWorker' in navigator) {
@@ -711,26 +711,40 @@ if ('serviceWorker' in navigator) {
       try {
         const res = await fetchWithTimeout(`${API_BASE}/status`);
         const data = await res.json();
+
         lastSuccessTs = Date.now();
         failSinceTs = null;
         localStorage.setItem(LS_LAST_SUCCESS, String(lastSuccessTs));
         localStorage.removeItem(LS_FAIL_SINCE);
+
         const vpn = data.vpn || {};
         const switching = !!vpn.switching_now;
         const speed = vpn.last_speedtest || { ping: 0, download: 0, upload: 0 };
+
+        const lastSpeedLabel =
+          speed && (speed.time || speed.timestamp)
+            ? (speed.time || speed.timestamp)
+            : '–';
+
         const dlPct = Math.min((speed.download / 90) * 100, 100);
         const ulPct = Math.min((speed.upload / 36) * 100, 100);
         const loadPct = Math.min(data.load_percent || 0, 100);
+
         const summaryEl = document.getElementById('summary-server');
-        summaryEl.textContent = switching ? 'Server: Wechsel läuft…' : `Server: ${vpn.current_server || 'Unbekannt'}`;
+        summaryEl.textContent = switching
+          ? 'Server: Wechsel läuft…'
+          : `Server: ${vpn.current_server || 'Unbekannt'}`;
+
         if (switching) setBanner('switching'); else setBanner('hidden');
         setMiniBars(loadPct, dlPct, ulPct);
         setSummaryMeta(lastSuccessTs);
+
         document.getElementById('status-box').innerHTML = `
           <p><b>Server:</b> ${vpn.current_server || 'Unbekannt'} (Load: ${vpn.server_load_percent || 0}%)</p>
           <p><b>Auslastung:</b> ${data.load_percent || 0}% (${data.streams || 0} Streams, ${data.downloads || 0} Downloads)</p>
           <progress value="${(data.load_percent || 0)/100}" max="1" class="${(data.load_percent || 0) > 75 ? 'high' : ''}"></progress>
-          <p><b>Speedtest:</b> Ping <b>${speed.ping || 0} ms</b></p>
+          <p><b>Letzter Speedtest (Server):</b> ${lastSpeedLabel}</p>
+          <p><b>Ping:</b> <b>${speed.ping || 0} ms</b></p>
           <p><b>DL:</b> <b>${speed.download || 0} Mbit/s</b></p>
           <progress value="${dlPct/100}" max="1" class="blue"></progress>
           <p><b>UL:</b> <b>${speed.upload || 0} Mbit/s</b></p>
@@ -739,8 +753,18 @@ if ('serviceWorker' in navigator) {
             ? '<span style="color:#111;background:var(--badge);padding:0.15em 0.45em;border-radius:6px;font-weight:800;">Läuft gerade!</span>'
             : `Letzter: ${vpn.last_switch || 'Keiner'} um ${vpn.last_switch_time || ''}`}</p>
         `;
+
+        // Buttontext im Normalfall (online)
+        const speedBtn = document.getElementById('speedtest-btn');
+        if (lastSpeedLabel !== '–') {
+          speedBtn.innerHTML = `⏱️ Speedtest (Server) starten<br><small>Letzter: ${lastSpeedLabel}</small>`;
+        } else {
+          speedBtn.innerHTML = '⏱️ Speedtest (Server) starten';
+        }
+
       } catch (e) {
         console.warn("Status nicht abrufbar:", e);
+
         if (!failSinceTs) {
           const persistedFail = lsNum(LS_FAIL_SINCE);
           if (persistedFail && (Date.now() - persistedFail) <= MAX_MEMORY_AGE_MS) {
@@ -750,9 +774,11 @@ if ('serviceWorker' in navigator) {
           }
         }
         localStorage.setItem(LS_FAIL_SINCE, String(failSinceTs));
+
         const lastSuccessPersisted = lsNum(LS_LAST_SUCCESS);
         setSummaryMeta(lastSuccessPersisted || lastSuccessTs);
         document.getElementById('summary-server').textContent = 'Server: (unbekannt)';
+
         const elapsed = Date.now() - failSinceTs;
         const isOffline = elapsed >= OFFLINE_THRESHOLD_MS;
         if (isOffline) {
@@ -760,6 +786,7 @@ if ('serviceWorker' in navigator) {
         } else {
           setBanner('switching', 'SERVERWECHSEL – Verbindung wird umgeschaltet…');
         }
+
         (async () => {
           const internetOK = await probeInternetOK();
           let extra = '';
@@ -776,14 +803,17 @@ if ('serviceWorker' in navigator) {
           const base = isOffline
             ? `<p><b>Server offline.</b> Bitte Administrator kontaktieren.</p>`
             : `<p>Verbinde… (${Math.floor(elapsed/1000)} s ohne Antwort)</p>`;
+
           const speedBtn = document.getElementById('speedtest-btn');
           if (!internetOK) {
             speedBtn.innerHTML = `Speedtest<br><small>Internet gestört</small>`;
           } else {
             speedBtn.innerHTML = `Speedtest<br><small>Server nicht erreichbar</small>`;
           }
+
           document.getElementById('status-box').innerHTML = base + extra;
         })();
+
         setInterval(() => {
           if (failSinceTs) {
             const elapsed = Date.now() - failSinceTs;
@@ -800,6 +830,7 @@ if ('serviceWorker' in navigator) {
 
     async function runSpeedtest() {
       const btn = document.getElementById('speedtest-btn');
+      let skipReset = false;
       setBtnState(btn, 'Wird geprüft…', true);
       btn.classList.remove('success', 'error');
       btn.classList.add('loading');
@@ -817,14 +848,41 @@ if ('serviceWorker' in navigator) {
       let pollTimer = null;
       try {
         const res = await fetchWithTimeout(`${API_BASE}/speedtest/run`, {
-          method: 'POST',
-          headers: { 'X-Token': SPEEDTEST_TOKEN, 'Accept': 'application/json' }
-        }, FETCH_TIMEOUT_MS_SPEEDTEST);
-        let data = null;
-        try {
-          const ct = res.headers.get('content-type') || '';
-          if (ct.includes('application/json')) data = await res.json();
-        } catch {}
+        method: 'POST',
+        headers: { 'X-Token': SPEEDTEST_TOKEN, 'Accept': 'application/json' }
+      }, FETCH_TIMEOUT_MS_SPEEDTEST);
+      let data = null;
+      try {
+        const ct = res.headers.get('content-type') || '';
+        if (ct.includes('application/json')) data = await res.json();
+      } catch {}
+        
+      // 🔴 Cooldown vom Backend
+      if (data && data.cooldown) {
+        btn.classList.remove('loading');
+        skipReset = true;
+
+        let remaining = data.remaining || 300;
+        const updateLabel = () => {
+          const m = Math.floor(remaining / 60);
+          const s = remaining % 60;
+          setBtnState(
+            btn,
+            `⏱️ Speedtest gesperrt (${m}:${String(s).padStart(2, '0')})`,
+            true
+          );
+          remaining--;
+          if (remaining < 0) {
+            clearInterval(cdTimer);
+            btn.classList.remove('error', 'loading');
+            setBtnState(btn, '⏱️ Speedtest (Server) starten', false);
+          }
+        };
+        updateLabel();
+        const cdTimer = setInterval(updateLabel, 1000);
+        return;
+      }
+        
         if (data && data.success === true) {
           btn.classList.remove('loading');
           setBtnState(btn, '⌛ Läuft… (~60 s)', true);
@@ -862,12 +920,14 @@ if ('serviceWorker' in navigator) {
         btn.classList.add('error');
         setBtnState(btn, 'Fehlgeschlagen', true);
       } finally {
+      if (!skipReset) {
         setTimeout(() => {
           if (pollTimer) clearInterval(pollTimer);
           setBtnState(btn, '⏱️ Speedtest (Server) starten', false);
           btn.classList.remove('success', 'error', 'loading');
         }, 2000);
       }
+    }
       async function pollForResult() {
         const t0 = Date.now();
         let seenUpdate = false;
