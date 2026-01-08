@@ -973,7 +973,7 @@ if ('serviceWorker' in navigator) {
     }
 
 // === Client-Speedtest (deine Leitung → Fritflix) ===
-const CLIENT_TEST_FILE_URL = '/speedtest/test-20mb.bin';   // Pfad zur Testdatei
+const CLIENT_TEST_FILE_URL = `${API_BASE}/client-test.bin`;   // Pfad zur Testdatei
 const CLIENT_TEST_FILE_SIZE_BYTES = 20 * 1024 * 1024;      // 20 MB
 const CLIENT_PING_URL = `${API_BASE}/health`;              // kleines JSON vom Backend
 
