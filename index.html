@@ -329,12 +329,17 @@ if ('serviceWorker' in navigator) {
 
   <!-- Speedtest Button -->
   <button id="speedtest-btn" class="speedtest-btn" onclick="runSpeedtest()">⏱️ Speedtest (Server) starten</button>
-  <button id="client-speedtest-btn"
+<button id="client-speedtest-btn"
         class="speedtest-btn"
         style="margin-top:-1.2em; opacity:0.95;"
-        onclick="openClientSpeedtest()">
+        onclick="runClientSpeedtest()">
   📶 Eigener Speedtest (deine Leitung)
 </button>
+
+<div id="client-speedtest-result"
+     style="margin:0.4em auto 0.8em; max-width:420px; width:95%; font-size:0.9em; text-align:left; opacity:0.9;">
+  Noch kein Test ausgeführt.
+</div>
 
   <!-- FAQ Button (unter Speedtest, grün) -->
   <button class="faq-jump-btn" onclick="document.getElementById('faq-section').scrollIntoView({behavior:'smooth'})">
@@ -967,10 +972,112 @@ if ('serviceWorker' in navigator) {
       }
     }
 
-    function openClientSpeedtest() {
-  // Öffnet Googles eingebauten Speedtest in neuem Tab
-  const url = 'https://www.google.com/search?q=speedtest';
-  window.open(url, '_blank', 'noopener');
+// === Client-Speedtest (deine Leitung → Fritflix) ===
+const CLIENT_TEST_FILE_URL = '/speedtest/test-20mb.bin';   // Pfad zur Testdatei
+const CLIENT_TEST_FILE_SIZE_BYTES = 20 * 1024 * 1024;      // 20 MB
+const CLIENT_PING_URL = `${API_BASE}/health`;              // kleines JSON vom Backend
+
+async function measureClientPing(repeats = 4) {
+  const times = [];
+  for (let i = 0; i < repeats; i++) {
+    const start = performance.now();
+    try {
+      // cache-buster, damit es nicht aus dem Cache kommt
+      await fetch(CLIENT_PING_URL + '?t=' + Date.now(), { cache: 'no-store' });
+      const end = performance.now();
+      times.push(end - start);
+    } catch (e) {
+      console.warn('Client-Ping-Fehler:', e);
+    }
+  }
+  if (!times.length) return null;
+  const avg = times.reduce((a, b) => a + b, 0) / times.length;
+  return avg; // in ms
+}
+
+async function measureClientDownload() {
+  const start = performance.now();
+  const res = await fetch(CLIENT_TEST_FILE_URL + '?t=' + Date.now(), {
+    cache: 'no-store'
+  });
+  if (!res.ok) {
+    throw new Error('HTTP-Fehler: ' + res.status);
+  }
+
+  let bytesReceived = 0;
+
+  if (res.body && res.body.getReader) {
+    // Moderne Browser: Streaming lesen
+    const reader = res.body.getReader();
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      bytesReceived += value.length;
+    }
+  } else {
+    // Fallback: komplette Datei in einem Rutsch
+    const blob = await res.blob();
+    bytesReceived = blob.size || CLIENT_TEST_FILE_SIZE_BYTES;
+  }
+
+  const end = performance.now();
+  const durationSeconds = (end - start) / 1000;
+
+  if (durationSeconds <= 0) {
+    throw new Error('Messdauer zu kurz/ungültig');
+  }
+
+  // Bits → Mbit/s
+  const bits = bytesReceived * 8;
+  const mbitPerSecond = (bits / 1_000_000) / durationSeconds;
+
+  return { mbitPerSecond, durationSeconds };
+}
+
+async function runClientSpeedtest() {
+  const btn = document.getElementById('client-speedtest-btn');
+  const out = document.getElementById('client-speedtest-result');
+
+  btn.classList.remove('success', 'error');
+  btn.classList.add('loading');
+  setBtnState(btn, '📶 Test läuft…', true);
+  out.textContent = 'Test läuft… Dies kann einige Sekunden dauern.';
+
+  try {
+    const pingMs = await measureClientPing();
+    const { mbitPerSecond, durationSeconds } = await measureClientDownload();
+
+    let html = '';
+
+    if (pingMs != null) {
+      html += `⏱ Ping zu Fritflix: <b>${pingMs.toFixed(0)} ms</b><br>`;
+    } else {
+      html += `⏱ Ping zu Fritflix: <b>konnte nicht gemessen werden</b><br>`;
+    }
+
+    html += `📥 Download von Fritflix: <b>${mbitPerSecond.toFixed(1)} Mbit/s</b><br>`;
+    html += `<small>(Messdauer: ${durationSeconds.toFixed(1)} s, Dateigröße ca. ${(CLIENT_TEST_FILE_SIZE_BYTES/1024/1024).toFixed(0)} MB)</small><br><br>`;
+
+    // Grobe Bewertung für Nutzer
+    if (mbitPerSecond >= 30) {
+      html += '✅ Deine Verbindung zu Fritflix ist sehr gut. HD und 4K sollten in der Regel flüssig laufen.';
+    } else if (mbitPerSecond >= 15) {
+      html += '🟡 Deine Verbindung ist okay. HD sollte meist funktionieren, 4K kann manchmal ruckeln.';
+    } else {
+      html += '🔴 Deine Verbindung zu Fritflix ist eher schwach. Ruckler liegen sehr wahrscheinlich an deiner Leitung, nicht am Server.';
+    }
+
+    out.innerHTML = html;
+    btn.classList.remove('loading');
+    btn.classList.add('success');
+    setBtnState(btn, '📶 Eigener Speedtest erneut starten', false);
+  } catch (e) {
+    console.error('Client-Speedtest Fehler:', e);
+    out.innerHTML = '⚠️ Fehler beim Speedtest: ' + (e.message || e);
+    btn.classList.remove('loading');
+    btn.classList.add('error');
+    setBtnState(btn, 'Fehler – erneut versuchen', false);
+  }
 }
     
     function setBtnState(btn, label, disabled) {
