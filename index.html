@@ -1059,12 +1059,14 @@ async function runClientSpeedtest() {
     html += `<small>(Messdauer: ${durationSeconds.toFixed(1)} s, Dateigröße ca. ${(CLIENT_TEST_FILE_SIZE_BYTES/1024/1024).toFixed(0)} MB)</small><br><br>`;
 
     // Grobe Bewertung für Nutzer
-    if (mbitPerSecond >= 30) {
+    if (mbitPerSecond >= 20) {
       html += '✅ Deine Verbindung zu Fritflix ist sehr gut. HD und 4K sollten in der Regel flüssig laufen.';
-    } else if (mbitPerSecond >= 15) {
-      html += '🟡 Deine Verbindung ist okay. HD sollte meist funktionieren, 4K kann manchmal ruckeln.';
+    } else if (mbitPerSecond >= 10) {
+      html += '🟡 Deine Verbindung ist gut. HD sollte meist funktionieren, 4K kann manchmal ruckeln.';
+    } else if (mbitPerSecond >= 5) {
+      html += '🟠 Deine Verbindung ist schwach. Stelle deine Bitrate auf unter 5!.';
     } else {
-      html += '🔴 Deine Verbindung zu Fritflix ist eher schwach. Ruckler liegen sehr wahrscheinlich an deiner Leitung, nicht am Server.';
+      html += '🔴 Deine Verbindung zu Fritflix ist sehr schwach. Ruckler liegen sehr wahrscheinlich an deiner Leitung, nicht am Server.';
     }
 
     out.innerHTML = html;
