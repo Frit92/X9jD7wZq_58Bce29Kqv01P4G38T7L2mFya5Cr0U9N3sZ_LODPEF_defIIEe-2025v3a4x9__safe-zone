@@ -473,11 +473,11 @@ if ('serviceWorker' in navigator) {
 <details class="faq-item">
   <summary><span class="chev">▶</span> 🚪 Wie melde ich mich an?</summary>
   <div class="faq-answer">
-    1. Jellyfin-App installieren oder Browser öffnen<br>
+    1. Jellyfin-/Swiftfin-App installieren oder Browser öffnen<br>
     2. Server-Adresse eingeben:<br>
-    → <b>https://fritflix.dedyn.io:33420</b><br>
-    → iPhone/iPad: <b>https://app.fritflix.dedyn.io:33420</b><br>
-    3. <b>Nur</b> im Browser: „Generalbenutzer“ + Passwort aus der WhatsApp-Gruppenbeschreibung eingeben<br>
+    → Browser & die meisten Apps: <b>https://fritflix.cc</b><br>
+    → iPhone/iPad/Apple TV (Swiftfin): <b>https://app.fritflix.cc</b><br>
+    3. <b>Nur im Browser:</b> „Generalbenutzer“ + Passwort aus der WhatsApp-Gruppenbeschreibung eingeben<br>
     4. Dein Profil auswählen → privates Passwort eingeben<br>
     5. Losstreamen!
   </div>
@@ -529,9 +529,10 @@ if ('serviceWorker' in navigator) {
 <details class="faq-item">
   <summary><span class="chev">▶</span> Server ist offline</summary>
   <div class="faq-answer">
-    1. VPN komplett ausschalten oder Land wechseln (nur DE & ES erlaubt)<br>
-    2. Zur vollen Stunde: automatischer Check → bis zu 15 Min offline<br>
-    3. Länger als 20 Min offline → Admin melden
+    1. VPN komplett ausschalten oder anderes Land wählen (nur DE & ES erlaubt)<br>
+    2. Eigene Internetverbindung prüfen (Speedtest, andere Webseiten testen)<br>
+    3. Wenn der Server länger als 10–15 Minuten nicht erreichbar ist → <b>Admin melden</b><br>
+    <small>Hinweis: Jetzt läuft alles über einen Hetzner-Server + Heimserver. Ist einer von beiden gestört, kann Fritflix kurz offline sein.</small>
   </div>
 </details>
 
@@ -615,7 +616,7 @@ if ('serviceWorker' in navigator) {
 
   <script>
     emailjs.init({ publicKey: "E4jHB9-hSCQJ6yEUf" });
-    const API_BASE = "https://fritflix.dedyn.io:33420/api";
+    const API_BASE = "/api";
     const SPEEDTEST_TOKEN = "fhe9wzr83ezrw7ft72636770pueu9uft";
     const OFFLINE_THRESHOLD_MS = 15 * 60 * 1000;
     const FETCH_TIMEOUT_MS = 10000;
@@ -680,24 +681,24 @@ if ('serviceWorker' in navigator) {
       ]);
     }
 
-    function setBanner(mode, extraText) {
-      const banner = document.getElementById('switch-banner');
-      const text = document.getElementById('switch-text');
-      if (mode === 'hidden') {
-        banner.style.display = 'none';
-        banner.classList.remove('switching', 'offline');
-        return;
-      }
-      banner.style.display = 'block';
-      banner.classList.remove('switching', 'offline');
-      if (mode === 'switching') {
-        banner.classList.add('switching');
-        text.textContent = extraText || 'SERVERWECHSEL – Verbindung wird umgeschaltet…';
-      } else if (mode === 'offline') {
-        banner.classList.add('offline');
-        text.textContent = extraText || 'Server offline. Bitte Administrator kontaktieren.';
-      }
-    }
+function setBanner(mode, extraText) {
+  const banner = document.getElementById('switch-banner');
+  const text = document.getElementById('switch-text');
+  if (mode === 'hidden') {
+    banner.style.display = 'none';
+    banner.classList.remove('switching', 'offline');
+    return;
+  }
+  banner.style.display = 'block';
+  banner.classList.remove('switching', 'offline');
+  if (mode === 'switching') {
+    banner.classList.add('switching');
+    text.textContent = extraText || 'Verbindungsproblem – der Server antwortet gerade nicht…';
+  } else if (mode === 'offline') {
+    banner.classList.add('offline');
+    text.textContent = extraText || 'Server nicht erreichbar. Bitte Admin kontaktieren.';
+  }
+}
 
     function setMiniBars(loadPct, dlPct, ulPct) {
       document.getElementById('mini-load').style.width = Math.min(loadPct, 100) + '%';
@@ -723,7 +724,6 @@ if ('serviceWorker' in navigator) {
         localStorage.removeItem(LS_FAIL_SINCE);
 
         const vpn = data.vpn || {};
-        const switching = !!vpn.switching_now;
         const speed = vpn.last_speedtest || { ping: 0, download: 0, upload: 0 };
 
         const lastSpeedLabel =
@@ -736,17 +736,16 @@ if ('serviceWorker' in navigator) {
         const loadPct = Math.min(data.load_percent || 0, 100);
 
         const summaryEl = document.getElementById('summary-server');
-        summaryEl.textContent = switching
-          ? 'Server: Wechsel läuft…'
-          : `Server: ${vpn.current_server || 'Unbekannt'}`;
+        summaryEl.textContent = `Server: ${vpn.current_server || 'Fritflix'}`;
 
-        if (switching) setBanner('switching'); else setBanner('hidden');
+        // Banner ausblenden, wenn alles okay
+        setBanner('hidden');
         setMiniBars(loadPct, dlPct, ulPct);
         setSummaryMeta(lastSuccessTs);
 
         document.getElementById('status-box').innerHTML = `
-          <p><b>Server:</b> ${vpn.current_server || 'Unbekannt'} (Load: ${vpn.server_load_percent || 0}%)</p>
-          <p><b>Auslastung:</b> ${data.load_percent || 0}% (${data.streams || 0} Streams, ${data.downloads || 0} Downloads)</p>
+          <p><b>Server:</b> ${vpn.current_server || 'Fritflix'}</p>
+          <p><b>Gesamt-Auslastung:</b> ${data.load_percent || 0}% (${data.streams || 0} Streams, ${data.downloads || 0} Downloads)</p>
           <progress value="${(data.load_percent || 0)/100}" max="1" class="${(data.load_percent || 0) > 75 ? 'high' : ''}"></progress>
           <p><b>Letzter Speedtest (Server):</b> ${lastSpeedLabel}</p>
           <p><b>Ping:</b> <b>${speed.ping || 0} ms</b></p>
@@ -754,9 +753,6 @@ if ('serviceWorker' in navigator) {
           <progress value="${dlPct/100}" max="1" class="blue"></progress>
           <p><b>UL:</b> <b>${speed.upload || 0} Mbit/s</b></p>
           <progress value="${ulPct/100}" max="1" class="blue"></progress>
-          <p><b>Wechsel:</b> ${switching
-            ? '<span style="color:#111;background:var(--badge);padding:0.15em 0.45em;border-radius:6px;font-weight:800;">Läuft gerade!</span>'
-            : `Letzter: ${vpn.last_switch || 'Keiner'} um ${vpn.last_switch_time || ''}`}</p>
         `;
 
         // Buttontext im Normalfall (online)
