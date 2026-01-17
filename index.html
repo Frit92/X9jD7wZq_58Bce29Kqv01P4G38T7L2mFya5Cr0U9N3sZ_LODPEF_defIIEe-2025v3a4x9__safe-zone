@@ -323,9 +323,10 @@
 }
 
 .slider-btn:disabled {
-  opacity: 0.4;
+  opacity: 0.3;
   cursor: not-allowed;
   box-shadow: none;
+  background: rgba(255,255,255,0.05);
 }
   </style>
   <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
@@ -1267,87 +1268,99 @@ async function runClientSpeedtest() {
     loadStatus();
     setInterval(loadStatus, 20000);
 
-    // Slider-Logik
-    let sliderPos = 0;
-    async function loadLatestItems() {
-      try {
-        const res = await fetch(`${API_BASE}/latest/items?limit=20`);
-        const data = await res.json();
-        const container = document.getElementById('slider-container');
-        container.innerHTML = '';
-const audioHtml = item.audio_tracks.map(track => {
-  const flag = getFlag(track.language);
-  let typeShort = track.type
-    .replace("Dolby Digital", "DD")
-    .replace("Dolby Digital Plus", "DD+")
-    .replace("Dolby Atmos", "Atmos")
-    .replace("5.1", "5.1")   // bleibt
-    .replace("Stereo", "2.0");
-  
-  return `<span>${flag} ${typeShort}</span>`;
-}).join('<br>');
-          const html = `
-            <div class="slider-item">
-              <img src="${item.cover_url}" alt="${item.name}" loading="lazy">
-              <h4>${item.name} (${item.year || ''})</h4>
-              <p>Qualität: ${item.quality}</p>
-              <p>Ton: ${audioHtml}</p>
-            </div>
-          `;
-          container.innerHTML += html;
-        });
-      } catch (e) {
-        console.error('Latest Items Fehler:', e);
-      }
-    }
-    function getFlag(lang) {
-      const flags = {
-        'de': '🇩🇪', 'en': '🇺🇸', 'es': '🇪🇸', 'fr': '🇫🇷', // Erweitere bei Bedarf
-        'unbekannt': '❓'
-      };
-      return flags[lang.toLowerCase()] || '🌐';
-    }
-    function slideLeft() {
-      sliderPos = Math.min(sliderPos + 1, 0);
-      updateSlider();
-    }
-    function slideRight() {
-      const maxPos = -(document.querySelectorAll('.slider-item').length - 3); // Zeige 3 Items pro Slide
-      sliderPos = Math.max(sliderPos - 1, maxPos);
-      updateSlider();
-    }
-    function updateSlider() {
-      const container = document.getElementById('slider-container');
-      container.style.transform = `translateX(${sliderPos * 160}px)`;  // 150px Item + 10px Gap
-    }
-    // Init
-    loadLatestItems();
-    
-  // Wisch-Gesten verbessern (smooth + Snap)
-const sliderContainer = document.getElementById('slider-container');
+ // Slider-Logik
+async function loadLatestItems() {
+  try {
+    const res = await fetch(`${API_BASE}/latest/items?limit=20`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
 
-sliderContainer.addEventListener('touchstart', e => {
-  // Optional: Auto-Play pausieren, wenn gewischt wird (falls du später Auto-Play hast)
-});
+    const container = document.getElementById('slider-container');
+    container.innerHTML = ''; // Leeren
 
-sliderContainer.addEventListener('scroll', () => {
-  // Optional: Aktuelle Position tracken, falls du Dots oder so willst
-});
+    if (!data.items || data.items.length === 0) {
+      container.innerHTML = '<p style="opacity:0.6; text-align:center; padding:1em;">Keine neuen Titel verfügbar</p>';
+      return;
+    }
 
-// Pfeile deaktivieren, wenn am Rand (optional, aber schön)
-function updateArrowState() {
-  const leftBtn = document.querySelector('.slider-btn.left');  // Klasse hinzufügen!
-  const rightBtn = document.querySelector('.slider-btn.right');
+    data.items.forEach(item => {
+      const audioHtml = (item.audio_tracks || []).map(track => {
+        const flag = getFlag(track.language || 'unbekannt');
+        let typeShort = (track.type || '–')
+          .replace(/Dolby Digital Plus/gi, 'DD+')
+          .replace(/Dolby Digital/gi, 'DD')
+          .replace(/Dolby Atmos/gi, 'Atmos')
+          .replace(/TrueHD/gi, 'TrueHD')
+          .replace(/\s*5\.1\s*/g, ' 5.1')
+          .replace(/\s*7\.1\s*/g, ' 7.1')
+          .replace(/Stereo/gi, '2.0');
 
-  leftBtn.disabled = sliderContainer.scrollLeft <= 0;
-  rightBtn.disabled = sliderContainer.scrollLeft + sliderContainer.clientWidth >= sliderContainer.scrollWidth;
+        return `<span>${flag} ${typeShort.trim()}</span>`;
+      }).join('<br>') || '<span>–</span>';
+
+      const html = `
+        <div class="slider-item">
+          <img src="${item.cover_url}" alt="${item.name}" loading="lazy" onerror="this.src='https://via.placeholder.com/110x165?text=Poster'">
+          <h4>${item.name} ${item.year ? `(${item.year})` : ''}</h4>
+          <p>Qualität: ${item.quality || '–'}</p>
+          <p>Ton: ${audioHtml}</p>
+        </div>
+      `;
+      container.innerHTML += html;
+    });
+
+    updateArrowState(); // Nach dem Laden Buttons aktualisieren
+  } catch (e) {
+    console.error('Latest Items Fehler:', e);
+    document.getElementById('slider-container').innerHTML = 
+      '<p style="color:#ff5555; text-align:center; padding:1em;">Fehler beim Laden der neuen Titel</p>';
+  }
 }
 
-// Bei Laden + nach jedem Laden aufrufen
-loadLatestItems().then(() => {
-  updateArrowState();
-  sliderContainer.addEventListener('scroll', updateArrowState);
-});
+function getFlag(lang) {
+  const flags = {
+    'de': '🇩🇪', 'ger': '🇩🇪', 'deu': '🇩🇪',
+    'en': '🇺🇸', 'eng': '🇺🇸',
+    'es': '🇪🇸',
+    'fr': '🇫🇷',
+    'ja': '🇯🇵',
+    'unbekannt': '❓', '–': '❓'
+  };
+  return flags[lang.toLowerCase()] || '🌐';
+}
+
+// Wisch- & Scroll-Handling (kein translateX mehr nötig)
+const sliderContainer = document.getElementById('slider-container');
+
+function updateArrowState() {
+  const leftBtn = document.querySelector('.slider-btn.left');
+  const rightBtn = document.querySelector('.slider-btn.right');
+
+  if (!leftBtn || !rightBtn) return;
+
+  const atStart = sliderContainer.scrollLeft <= 1; // <=1 wegen Rounding-Fehlern
+  const atEnd = sliderContainer.scrollLeft + sliderContainer.clientWidth >= sliderContainer.scrollWidth - 1;
+
+  leftBtn.disabled = atStart;
+  rightBtn.disabled = atEnd;
+}
+
+// Pfeile funktionieren jetzt mit ScrollBy (smooth)
+function slideLeft() {
+  sliderContainer.scrollBy({ left: -140, behavior: 'smooth' }); // ca. 110px Item + Gap
+}
+
+function slideRight() {
+  sliderContainer.scrollBy({ left: 140, behavior: 'smooth' });
+}
+
+// Events
+sliderContainer.addEventListener('scroll', updateArrowState);
+window.addEventListener('resize', updateArrowState);
+
+// Init
+loadLatestItems();
+setInterval(loadLatestItems, 300000); // alle 5 Min refreshen (optional)
   </script>
 
   <div id="update-banner" style="
