@@ -260,32 +260,42 @@
 }
 
 .slider-item {
-  flex: 0 0 110px;            /* Schmaler – 3 passen auf ~360–420px Handy-Breite */
+  flex: 0 0 110px;
   width: 110px;
   background: #1a1a1a;
   border-radius: 10px;
   padding: 0.4em;
   text-align: center;
   box-shadow: 0 3px 10px rgba(0,0,0,0.5);
-  scroll-snap-align: start;   /* Für präzises Wischen */
+  cursor: pointer;
+  transition: transform 0.18s ease;
+}
+
+.slider-item:hover {
+  transform: scale(1.06);
 }
 
 .slider-item img {
   width: 100%;
-  height: auto;
-  border-radius: 8px;
-  aspect-ratio: 2 / 3;        /* Klassisches Hochformat-Poster (fast immer 2:3) */
+  aspect-ratio: 2 / 3;
   object-fit: cover;
-  background: #111;           /* Fallback bei Lade-Fehlern */
+  border-radius: 8px;
+  background: #111;
 }
 
 .slider-item h4 {
-  font-size: 0.8em;
+  font-size: 0.78em;
   margin: 0.5em 0 0.2em;
   line-height: 1.15;
-  height: 2.3em;
+  height: 2.4em;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.slider-item .season-info {
+  font-size: 0.68em;
+  color: #aaa;
+  margin-top: 2px;
 }
 
 .slider-item p {
@@ -328,6 +338,124 @@
   box-shadow: none;
   background: rgba(255,255,255,0.05);
 }
+
+/* Detail Modal */
+#detailModal {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.88);
+  z-index: 9999;
+  justify-content: center;
+  align-items: flex-start;
+  overflow-y: auto;
+  padding: 20px 10px;
+}
+
+.detail-content {
+  background: #1f1f1f;
+  border-radius: 12px;
+  max-width: 720px;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+  position: relative;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.7);
+  padding: 24px;
+}
+
+.close-detail {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  background: #e50914;
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 38px;
+  height: 38px;
+  font-size: 22px;
+  cursor: pointer;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s;
+}
+
+.close-detail:hover {
+  background: #f41a22;
+}
+
+.detail-poster {
+  max-width: 100%;
+  border-radius: 10px;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.6);
+}
+
+.detail-header h2 {
+  margin: 0 0 12px;
+  font-size: 1.6em;
+}
+
+.detail-meta {
+  color: #aaa;
+  font-size: 0.95em;
+  margin: 8px 0;
+}
+
+.detail-overview {
+  margin: 16px 0;
+  line-height: 1.5;
+  color: #ddd;
+}
+
+.detail-actions {
+  margin: 20px 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.detail-btn {
+  padding: 10px 18px;
+  border-radius: 6px;
+  font-weight: bold;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.detail-btn.trailer {
+  background: #6528b5;
+  color: white;
+}
+
+.detail-btn.imdb {
+  background: #f5c518;
+  color: black;
+}
+
+.detail-btn.rt {
+  background: #388e3c;
+  color: white;
+}
+
+.detail-btn.rt.rotten {
+  background: #d32f2f;
+}
+
+/* Handy: Poster oben, Text unten */
+@media (max-width: 600px) {
+  .detail-layout {
+    flex-direction: column;
+  }
+  .detail-poster {
+    max-width: 240px;
+    margin: 0 auto 16px;
+  }
+}
   </style>
   <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
   <link rel="manifest" href="manifest.json">
@@ -336,7 +464,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Fritflix Feedback">
 <script>
-const VERSION = 'v1.2.5'; // ← Bei jedem Update ändern!
+const VERSION = 'v1.2.6'; // ← Bei jedem Update ändern!
 
 // === UPDATE BANNER STEUERUNG ===
 if ('serviceWorker' in navigator) {
@@ -1269,6 +1397,8 @@ async function runClientSpeedtest() {
     setInterval(loadStatus, 20000);
 
  // Slider-Logik
+let sliderPos = 0;
+
 async function loadLatestItems() {
   try {
     const res = await fetch(`${API_BASE}/latest/items?limit=20`);
@@ -1276,91 +1406,216 @@ async function loadLatestItems() {
     const data = await res.json();
 
     const container = document.getElementById('slider-container');
-    container.innerHTML = ''; // Leeren
+    container.innerHTML = '';
 
-    if (!data.items || data.items.length === 0) {
-      container.innerHTML = '<p style="opacity:0.6; text-align:center; padding:1em;">Keine neuen Titel verfügbar</p>';
+    if (!data.items?.length) {
+      container.innerHTML = '<p style="opacity:0.7; text-align:center; padding:1em;">Keine neuen Titel</p>';
       return;
     }
 
     data.items.forEach(item => {
       const audioHtml = (item.audio_tracks || []).map(track => {
         const flag = getFlag(track.language || 'unbekannt');
-        let typeShort = (track.type || '–')
+        let type = (track.type || '–')
           .replace(/Dolby Digital Plus/gi, 'DD+')
           .replace(/Dolby Digital/gi, 'DD')
           .replace(/Dolby Atmos/gi, 'Atmos')
-          .replace(/TrueHD/gi, 'TrueHD')
           .replace(/\s*5\.1\s*/g, ' 5.1')
-          .replace(/\s*7\.1\s*/g, ' 7.1')
           .replace(/Stereo/gi, '2.0');
+        return `<span>${flag} ${type.trim()}</span>`;
+      }).join('<br>') || '–';
 
-        return `<span>${flag} ${typeShort.trim()}</span>`;
-      }).join('<br>') || '<span>–</span>';
+      let seasonInfo = '';
+      if (item.type === 'Series' && item.season_count) {
+        seasonInfo = `S${String(item.season_count).padStart(2,'0')}`;
+        if (item.latest_episode?.season && item.latest_episode?.episode) {
+          seasonInfo += ` • S${item.latest_episode.season} E${item.latest_episode.episode}`;
+        }
+      }
 
       const html = `
-        <div class="slider-item">
-          <img src="${item.cover_url}" alt="${item.name}" loading="lazy" onerror="this.src='https://via.placeholder.com/110x165?text=Poster'">
+        <div class="slider-item" onclick='openDetail(${JSON.stringify(item)})'>
+          <img src="${item.cover_url}" alt="${item.name}" loading="lazy"
+               onerror="this.src='https://via.placeholder.com/110x165?text=?';">
           <h4>${item.name} ${item.year ? `(${item.year})` : ''}</h4>
           <p>Qualität: ${item.quality || '–'}</p>
           <p>Ton: ${audioHtml}</p>
+          ${seasonInfo ? `<p class="season-info">${seasonInfo}</p>` : ''}
         </div>
       `;
       container.innerHTML += html;
     });
 
-    updateArrowState(); // Nach dem Laden Buttons aktualisieren
+    updateArrowState();
   } catch (e) {
     console.error('Latest Items Fehler:', e);
     document.getElementById('slider-container').innerHTML = 
-      '<p style="color:#ff5555; text-align:center; padding:1em;">Fehler beim Laden der neuen Titel</p>';
+      '<p style="color:#ff5555; text-align:center; padding:1em;">Fehler beim Laden</p>';
   }
 }
 
 function getFlag(lang) {
   const flags = {
+    // Deutsch & Varianten
     'de': '🇩🇪', 'ger': '🇩🇪', 'deu': '🇩🇪',
-    'en': '🇺🇸', 'eng': '🇺🇸',
-    'es': '🇪🇸',
-    'fr': '🇫🇷',
-    'ja': '🇯🇵',
-    'unbekannt': '❓', '–': '❓'
+
+    // Englisch
+    'en': '🇺🇸', 'eng': '🇺🇸', 'gb': '🇬🇧', 'us': '🇺🇸',
+
+    // Spanisch
+    'es': '🇪🇸', 'spa': '🇪🇸',
+
+    // Französisch
+    'fr': '🇫🇷', 'fra': '🇫🇷', 'fre': '🇫🇷',
+
+    // Italienisch
+    'it': '🇮🇹', 'ita': '🇮🇹',
+
+    // Niederländisch (neu)
+    'nl': '🇳🇱', 'nld': '🇳🇱', 'dut': '🇳🇱',
+
+    // Dänisch (neu)
+    'da': '🇩🇰', 'dan': '🇩🇰',
+
+    // Schwedisch
+    'sv': '🇸🇪', 'swe': '🇸🇪',
+
+    // Norwegisch
+    'no': '🇳🇴', 'nor': '🇳🇴',
+
+    // Finnisch
+    'fi': '🇫🇮', 'fin': '🇫🇮',
+
+    // Polnisch
+    'pl': '🇵🇱', 'pol': '🇵🇱',
+
+    // Portugiesisch
+    'pt': '🇵🇹', 'por': '🇵🇹',
+
+    // Japanisch
+    'ja': '🇯🇵', 'jpn': '🇯🇵',
+
+    // Koreanisch
+    'ko': '🇰🇷', 'kor': '🇰🇷',
+
+    // Chinesisch
+    'zh': '🇨🇳', 'chi': '🇨🇳', 'zho': '🇨🇳',
+
+    // Russisch
+    'ru': '🇷🇺', 'rus': '🇷🇺',
+
+    // Fallbacks
+    'unbekannt': '❓',
+    '–': '❓',
+    '': '❓'
   };
-  return flags[lang.toLowerCase()] || '🌐';
+
+  // Sprache normalisieren (z. B. "de-DE" → "de")
+  const normalized = (lang || '').toLowerCase().split('-')[0].trim();
+
+  return flags[normalized] || '🌐';
 }
 
-// Wisch- & Scroll-Handling (kein translateX mehr nötig)
+function openDetail(item) {
+  const modal = document.getElementById('detailModal');
+  const content = document.getElementById('detailContent');
+
+  let trailerBtn = '';
+  if (item.trailer) {
+    trailerBtn = `
+      <a href="${item.trailer}" target="_blank" class="detail-btn trailer">
+        🎬 Trailer ansehen
+      </a>`;
+  }
+
+  let imdbBtn = '';
+  if (item.ProviderIds?.Imdb) {
+    imdbBtn = `
+      <a href="https://www.imdb.com/title/${item.ProviderIds.Imdb}" target="_blank" class="detail-btn imdb">
+        ⭐ IMDb ${item.CommunityRating ? item.CommunityRating.toFixed(1) : '–'}
+      </a>`;
+  }
+
+  let rtHtml = '';
+  if (item.CriticRating !== undefined) {
+    const rtClass = item.CriticRating >= 60 ? 'fresh' : 'rotten';
+    rtHtml = `
+      <div class="detail-btn rt ${rtClass}">
+        🍅 RT ${item.CriticRating}%
+      </div>`;
+  }
+
+  let seasonInfo = '';
+  if (item.type === 'Series') {
+    seasonInfo = `<p><strong>Staffeln:</strong> ${item.season_count || '–'}</p>`;
+    if (item.latest_episode) {
+      const ep = item.latest_episode;
+      seasonInfo += `<p><strong>Neueste:</strong> S${ep.season || '?'} E${ep.episode || '?'} – ${ep.name || 'Episode'}</p>`;
+    }
+  }
+
+  content.innerHTML = `
+    <div class="detail-layout" style="display:flex; flex-wrap:wrap; gap:24px;">
+      <div style="flex:1; min-width:240px; text-align:center;">
+        <img src="${item.poster_large || item.cover_url}" class="detail-poster" loading="lazy"
+             onerror="this.src='https://via.placeholder.com/300x450?text=Poster';">
+      </div>
+      <div style="flex:2; min-width:300px;">
+        <h2>${item.name} ${item.year ? `(${item.year})` : ''}</h2>
+        <div class="detail-meta">
+          ${item.type === 'Movie' ? 'Film' : 'Serie'} • ${item.quality || '–'}
+        </div>
+        <p class="detail-overview">
+          ${item.overview || '<i>Keine Beschreibung verfügbar</i>'}
+        </p>
+        ${item.runtime ? `<p><strong>Laufzeit:</strong> ${item.runtime} Min</p>` : ''}
+        ${seasonInfo}
+        <div class="detail-actions">
+          ${trailerBtn}
+          ${imdbBtn}
+          ${rtHtml}
+        </div>
+      </div>
+    </div>
+  `;
+
+  modal.style.display = 'flex';
+}
+
+// Schließen per Klick außerhalb
+document.getElementById('detailModal').addEventListener('click', e => {
+  if (e.target === e.currentTarget) {
+    e.currentTarget.style.display = 'none';
+  }
+});
+
+// Schließen per ESC
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') {
+    document.getElementById('detailModal').style.display = 'none';
+  }
+});
+
+// Pfeile + Wischen (wie vorher)
 const sliderContainer = document.getElementById('slider-container');
 
 function updateArrowState() {
-  const leftBtn = document.querySelector('.slider-btn.left');
-  const rightBtn = document.querySelector('.slider-btn.right');
+  const left = document.querySelector('.slider-btn.left');
+  const right = document.querySelector('.slider-btn.right');
+  if (!left || !right) return;
 
-  if (!leftBtn || !rightBtn) return;
-
-  const atStart = sliderContainer.scrollLeft <= 1; // <=1 wegen Rounding-Fehlern
-  const atEnd = sliderContainer.scrollLeft + sliderContainer.clientWidth >= sliderContainer.scrollWidth - 1;
-
-  leftBtn.disabled = atStart;
-  rightBtn.disabled = atEnd;
+  left.disabled = sliderContainer.scrollLeft <= 1;
+  right.disabled = sliderContainer.scrollLeft + sliderContainer.clientWidth >= sliderContainer.scrollWidth - 1;
 }
 
-// Pfeile funktionieren jetzt mit ScrollBy (smooth)
-function slideLeft() {
-  sliderContainer.scrollBy({ left: -140, behavior: 'smooth' }); // ca. 110px Item + Gap
-}
+function slideLeft()  { sliderContainer.scrollBy({left: -140, behavior: 'smooth'}); }
+function slideRight() { sliderContainer.scrollBy({left: 140,  behavior: 'smooth'}); }
 
-function slideRight() {
-  sliderContainer.scrollBy({ left: 140, behavior: 'smooth' });
-}
-
-// Events
 sliderContainer.addEventListener('scroll', updateArrowState);
 window.addEventListener('resize', updateArrowState);
 
 // Init
 loadLatestItems();
-setInterval(loadLatestItems, 300000); // alle 5 Min refreshen (optional)
   </script>
 
   <div id="update-banner" style="
@@ -1391,6 +1646,13 @@ setInterval(loadLatestItems, 300000); // alle 5 Min refreshen (optional)
   ">
     Aktualisieren
   </button>
+
+</div>
+<div id="detailModal">
+  <div class="detail-content">
+    <button class="close-detail" onclick="document.getElementById('detailModal').style.display='none'">×</button>
+    <div id="detailContent"></div>
+  </div>
 </div>
 </body>
 </html>
