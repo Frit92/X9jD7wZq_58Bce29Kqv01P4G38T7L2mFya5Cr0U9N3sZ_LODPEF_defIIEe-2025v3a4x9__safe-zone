@@ -1049,6 +1049,47 @@ function setBanner(mode, extraText) {
       return res.json();
     }
 
+  async function pollForResult(btn, prevTs, pollTimer) {
+  const t0 = Date.now();
+  let lastSpeed = null;
+
+  try {
+    const initial = await getStatusSafe();
+    lastSpeed = initial?.vpn?.last_speedtest || null;
+  } catch {}
+
+  while (Date.now() - t0 < SPEEDTEST_POLL_TIMEOUT_MS) {
+    await new Promise(r => setTimeout(r, SPEEDTEST_POLL_INTERVAL_MS));
+    try {
+      const now = await getStatusSafe();
+      const currentSpeed = now?.vpn?.last_speedtest;
+      if (!currentSpeed) continue;
+
+      const tsChanged = prevTs && currentSpeed.timestamp && currentSpeed.timestamp !== prevTs;
+      const valuesChanged = lastSpeed && (
+        currentSpeed.download !== lastSpeed.download ||
+        currentSpeed.upload !== lastSpeed.upload ||
+        currentSpeed.ping !== lastSpeed.ping
+      );
+
+      if (tsChanged || valuesChanged || (!lastSpeed && currentSpeed.download > 0)) {
+        if (pollTimer) clearInterval(pollTimer);
+        btn.classList.add('success');
+        setBtnState(btn, '✅ Erfolgreich! Danke!', true);
+        await loadStatus();
+        return true;
+      }
+
+      lastSpeed = currentSpeed;
+    } catch {}
+  }
+
+  if (pollTimer) clearInterval(pollTimer);
+  btn.classList.add('error');
+  setBtnState(btn, 'Fehlgeschlagen (kein Ergebnis)', true);
+  return false;
+}
+
     async function runSpeedtest() {
       const btn = document.getElementById('speedtest-btn');
       let skipReset = false;
@@ -1111,7 +1152,7 @@ function setBanner(mode, extraText) {
             pollCount++;
             setBtnState(btn, `⌛ Läuft… (~60 s) (${pollCount * 2}s)`, true);
           }, SPEEDTEST_POLL_INTERVAL_MS);
-          await pollForResult();
+          await pollForResult(btn, prevTs, pollTimer);
           return;
         }
         if (res.ok || res.status === 202) {
@@ -1121,7 +1162,7 @@ function setBanner(mode, extraText) {
             pollCount++;
             setBtnState(btn, `⌛ Läuft… (~60 s) (${pollCount * 2}s)`, true);
           }, SPEEDTEST_POLL_INTERVAL_MS);
-          await pollForResult();
+          await pollForResult(btn, prevTs, pollTimer);
           return;
         }
         throw new Error(`HTTP ${res.status}`);
@@ -1133,57 +1174,20 @@ function setBanner(mode, extraText) {
             pollCount++;
             setBtnState(btn, `⌛ Läuft… (~63 s) (${pollCount * 2}s)`, true);
           }, SPEEDTEST_POLL_INTERVAL_MS);
-          await pollForResult();
+          await pollForResult(btn, prevTs, pollTimer);
           return;
         }
         console.error('Speedtest Fehler:', e);
         btn.classList.remove('loading');
         btn.classList.add('error');
         setBtnState(btn, 'Fehlgeschlagen', true);
-      } finally {
-      if (!skipReset) {
-        setTimeout(() => {
-          if (pollTimer) clearInterval(pollTimer);
-          setBtnState(btn, '⏱️ Speedtest (Server) starten', false);
-          btn.classList.remove('success', 'error', 'loading');
-        }, 2000);
-      }
-    }
-      async function pollForResult() {
-        const t0 = Date.now();
-        let seenUpdate = false;
-        let lastSpeed = null;
-        try {
-          const initial = await getStatusSafe();
-          lastSpeed = initial?.vpn?.last_speedtest;
-        } catch {}
-        while (Date.now() - t0 < SPEEDTEST_POLL_TIMEOUT_MS) {
-          await new Promise(r => setTimeout(r, SPEEDTEST_POLL_INTERVAL_MS));
-          try {
-            const now = await getStatusSafe();
-            const currentSpeed = now?.vpn?.last_speedtest;
-            if (!currentSpeed) continue;
-            const tsChanged = prevTs && currentSpeed.timestamp && currentSpeed.timestamp !== prevTs;
-            const valuesChanged = lastSpeed && (
-              currentSpeed.download !== lastSpeed.download ||
-              currentSpeed.upload !== lastSpeed.upload ||
-              currentSpeed.ping !== lastSpeed.ping
-            );
-            if (tsChanged || valuesChanged || (!lastSpeed && currentSpeed.download > 0)) {
-              if (pollTimer) clearInterval(pollTimer);
-              btn.classList.add('success');
-              setBtnState(btn, '✅ Erfolgreich! Danke!', true);
-              await loadStatus();
-              seenUpdate = true;
-              break;
-            }
-            lastSpeed = currentSpeed;
-          } catch {}
-        }
-        if (!seenUpdate) {
-          if (pollTimer) clearInterval(pollTimer);
-          btn.classList.add('error');
-          setBtnState(btn, 'Fehlgeschlagen (kein Ergebnis)', true);
+            } finally {
+        if (!skipReset) {
+          setTimeout(() => {
+            if (pollTimer) clearInterval(pollTimer);
+            setBtnState(btn, '⏱️ Speedtest (Server) starten', false);
+            btn.classList.remove('success', 'error', 'loading');
+          }, 2000);
         }
       }
     }
@@ -1431,20 +1435,21 @@ async function loadLatestItems() {
           seasonInfo += ` • S${item.latest_episode.season} E${item.latest_episode.episode}`;
         }
       }
-
-const html = `
-  <div class="slider-item" data-item='${encodeURIComponent(JSON.stringify(item))}'>
-    <img src="${item.cover_url}" alt="${item.name}" loading="lazy"
-         onerror="this.src='https://via.placeholder.com/110x165?text=?';">
-    <h4>${item.name} ${item.year ? `(${item.year})` : ''}</h4>
-    <p>Qualität: ${item.quality || '–'}</p>
-    <p>Ton: ${audioHtml}</p>
-    ${seasonInfo ? `<p class="season-info">${seasonInfo}</p>` : ''}
-  </div>
-`;
-container.innerHTML += html;
-
-      document.querySelectorAll('.slider-item[data-item]').forEach(el => {
+      
+  const html = `
+    <div class="slider-item" data-item='${encodeURIComponent(JSON.stringify(item))}'>
+      <img src="${item.cover_url}" alt="${item.name}" loading="lazy"
+           onerror="this.src='https://via.placeholder.com/110x165?text=?';">
+      <h4>${item.name} ${item.year ? `(${item.year})` : ''}</h4>
+      <p>Qualität: ${item.quality || '–'}</p>
+      <p>Ton: ${audioHtml}</p>
+      ${seasonInfo ? `<p class="season-info">${seasonInfo}</p>` : ''}
+    </div>
+  `;
+  container.innerHTML += html;
+}); 
+      
+document.querySelectorAll('.slider-item[data-item]').forEach(el => {
   el.addEventListener('click', () => {
     const raw = decodeURIComponent(el.getAttribute('data-item'));
     openDetail(JSON.parse(raw));
@@ -1591,25 +1596,23 @@ if (item.rotten_rating != null) {
 
 // Pfeile + Wischen (wie vorher)
 const sliderContainer = document.getElementById('slider-container');
-if (sliderContainer) {
-  sliderContainer.addEventListener('scroll', updateArrowState);
-  window.addEventListener('resize', updateArrowState);
-}
 
 function updateArrowState() {
   const left = document.querySelector('.slider-btn.left');
   const right = document.querySelector('.slider-btn.right');
-  if (!left || !right) return;
+  if (!left || !right || !sliderContainer) return;
 
-  left.disabled = sliderContainer.scrollLeft <= 1;
+  left.disabled  = sliderContainer.scrollLeft <= 1;
   right.disabled = sliderContainer.scrollLeft + sliderContainer.clientWidth >= sliderContainer.scrollWidth - 1;
 }
 
-function slideLeft()  { sliderContainer.scrollBy({left: -140, behavior: 'smooth'}); }
-function slideRight() { sliderContainer.scrollBy({left: 140,  behavior: 'smooth'}); }
+function slideLeft()  { if (sliderContainer) sliderContainer.scrollBy({ left: -140, behavior: 'smooth' }); }
+function slideRight() { if (sliderContainer) sliderContainer.scrollBy({ left:  140, behavior: 'smooth' }); }
 
-sliderContainer.addEventListener('scroll', updateArrowState);
-window.addEventListener('resize', updateArrowState);
+if (sliderContainer) {
+  sliderContainer.addEventListener('scroll', updateArrowState);
+  window.addEventListener('resize', updateArrowState);
+}
 
 // Init
 loadLatestItems();
