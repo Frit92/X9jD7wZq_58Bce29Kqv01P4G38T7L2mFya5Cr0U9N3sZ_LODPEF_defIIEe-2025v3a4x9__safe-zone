@@ -249,19 +249,84 @@
     #latest-slider {
       width: 95%; max-width: 420px; overflow: hidden; margin: 1em 0;
     }
-    .slider-container {
-      display: flex; transition: transform 0.5s ease; gap: 1em; padding: 0.5em;
-    }
-    .slider-item {
-      flex: 0 0 150px; background: #222; border-radius: 10px; padding: 0.5em; text-align: left;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.3);
-    }
-    .slider-item img { width: 100%; height: auto; border-radius: 8px; }
-    .slider-item h4 { font-size: 0.9em; margin: 0.4em 0 0.2em; }
-    .slider-item p { font-size: 0.75em; opacity: 0.8; margin: 0.2em 0; }
-    .slider-controls { display: flex; justify-content: center; gap: 1em; margin-top: 0.5em; }
-    .slider-btn { background: var(--primary); color: #fff; padding: 0.4em 1em; border-radius: 0.5em; cursor: pointer; }
-    .slider-btn:disabled { background: #666; }
+.slider-container {
+  display: flex;
+  transition: transform 0.5s ease;
+  gap: 0.8em;               /* Abstand zwischen Postern */
+  padding: 0.4em 0.6em;
+  scroll-snap-type: x mandatory;  /* Für Wischen wichtig */
+  overflow-x: auto;           /* Ermöglicht Scrollen/Wischen */
+  -webkit-overflow-scrolling: touch;  /* Smooth Scroll auf iOS */
+}
+
+.slider-item {
+  flex: 0 0 110px;            /* Schmaler – 3 passen auf ~360–420px Handy-Breite */
+  width: 110px;
+  background: #1a1a1a;
+  border-radius: 10px;
+  padding: 0.4em;
+  text-align: center;
+  box-shadow: 0 3px 10px rgba(0,0,0,0.5);
+  scroll-snap-align: start;   /* Für präzises Wischen */
+}
+
+.slider-item img {
+  width: 100%;
+  height: auto;
+  border-radius: 8px;
+  aspect-ratio: 2 / 3;        /* Klassisches Hochformat-Poster (fast immer 2:3) */
+  object-fit: cover;
+  background: #111;           /* Fallback bei Lade-Fehlern */
+}
+
+.slider-item h4 {
+  font-size: 0.8em;
+  margin: 0.5em 0 0.2em;
+  line-height: 1.15;
+  height: 2.3em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.slider-item p {
+  font-size: 0.7em;
+  opacity: 0.9;
+  margin: 0.15em 0;
+  line-height: 1.2;
+}
+.slider-controls { display: flex; justify-content: center; gap: 1em; margin-top: 0.5em; }
+    
+.slider-btn {
+  background: rgba(255, 255, 255, 0.12);   /* Leicht transparentes Weiß/Grau */
+  color: #ffffff;
+  border: none;
+  border-radius: 50%;
+  width: 44px;
+  height: 44px;
+  font-size: 1.4em;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  backdrop-filter: blur(6px);           /* Glassmorphism-Effekt (cool auf dunklem BG) */
+  box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+}
+
+.slider-btn:hover {
+  background: rgba(255, 255, 255, 0.25);
+  transform: scale(1.15);
+}
+
+.slider-btn:active {
+  transform: scale(0.92);
+}
+
+.slider-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  box-shadow: none;
+}
   </style>
   <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
   <link rel="manifest" href="manifest.json">
@@ -363,9 +428,9 @@ if ('serviceWorker' in navigator) {
     <h2>Neueste Filme & Serien</h2>
     <div class="slider-container" id="slider-container"></div>
     <div class="slider-controls">
-      <button class="slider-btn" onclick="slideLeft()">◀</button>
-      <button class="slider-btn" onclick="slideRight()">▶</button>
-    </div>
+    <button class="slider-btn left" onclick="slideLeft()">◀</button>
+    <button class="slider-btn right" onclick="slideRight()">▶</button>
+  </div>
 </div>
 
   <!-- FAQ Button (unter Speedtest, grün) -->
@@ -1210,11 +1275,17 @@ async function runClientSpeedtest() {
         const data = await res.json();
         const container = document.getElementById('slider-container');
         container.innerHTML = '';
-        data.items.forEach(item => {
-          const audioHtml = item.audio_tracks.map(track => {
-            const flag = getFlag(track.language);  // Flag-Funktion unten
-            return `<span>${flag} ${track.type}</span>`;
-          }).join('<br>');
+const audioHtml = item.audio_tracks.map(track => {
+  const flag = getFlag(track.language);
+  let typeShort = track.type
+    .replace("Dolby Digital", "DD")
+    .replace("Dolby Digital Plus", "DD+")
+    .replace("Dolby Atmos", "Atmos")
+    .replace("5.1", "5.1")   // bleibt
+    .replace("Stereo", "2.0");
+  
+  return `<span>${flag} ${typeShort}</span>`;
+}).join('<br>');
           const html = `
             <div class="slider-item">
               <img src="${item.cover_url}" alt="${item.name}" loading="lazy">
@@ -1251,6 +1322,32 @@ async function runClientSpeedtest() {
     }
     // Init
     loadLatestItems();
+    
+  // Wisch-Gesten verbessern (smooth + Snap)
+const sliderContainer = document.getElementById('slider-container');
+
+sliderContainer.addEventListener('touchstart', e => {
+  // Optional: Auto-Play pausieren, wenn gewischt wird (falls du später Auto-Play hast)
+});
+
+sliderContainer.addEventListener('scroll', () => {
+  // Optional: Aktuelle Position tracken, falls du Dots oder so willst
+});
+
+// Pfeile deaktivieren, wenn am Rand (optional, aber schön)
+function updateArrowState() {
+  const leftBtn = document.querySelector('.slider-btn.left');  // Klasse hinzufügen!
+  const rightBtn = document.querySelector('.slider-btn.right');
+
+  leftBtn.disabled = sliderContainer.scrollLeft <= 0;
+  rightBtn.disabled = sliderContainer.scrollLeft + sliderContainer.clientWidth >= sliderContainer.scrollWidth;
+}
+
+// Bei Laden + nach jedem Laden aufrufen
+loadLatestItems().then(() => {
+  updateArrowState();
+  sliderContainer.addEventListener('scroll', updateArrowState);
+});
   </script>
 
   <div id="update-banner" style="
