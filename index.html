@@ -467,51 +467,47 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Fritflix Feedback">
 <script>
-const VERSION = 'v1.2.8'; // ← Bei jedem Update ändern!
+const VERSION = 'v1.2.9';
 
-// === UPDATE BANNER STEUERUNG ===
-if ('serviceWorker' in navigator) {
-  let newWorker;
-  const updateBanner = document.getElementById('update-banner');
-  const reloadBtn = document.getElementById('update-reload-btn');
+window.addEventListener('DOMContentLoaded', () => {
+  if ('serviceWorker' in navigator) {
+    let newWorker;
+    const updateBanner = document.getElementById('update-banner');
+    const reloadBtn = document.getElementById('update-reload-btn');
 
-  function showUpdateBanner() {
-    updateBanner.style.display = 'block';
-    reloadBtn.onclick = () => {
-      if (newWorker) {
-        newWorker.postMessage({ type: 'SKIP_WAITING' });
-      }
-    };
-  }
+    function showUpdateBanner() {
+      if (!updateBanner || !reloadBtn) return;
+      updateBanner.style.display = 'block';
+      reloadBtn.onclick = () => {
+        if (newWorker) newWorker.postMessage({ type: 'SKIP_WAITING' });
+      };
+    }
 
-  // Nur EINE Registrierung mit Cache-Buster
-  navigator.serviceWorker.register('sw.js?v=' + VERSION)
-    .then(reg => {
-      console.log('SW registriert:', reg.scope);
+    navigator.serviceWorker.register('sw.js?v=' + VERSION)
+      .then(reg => {
+        console.log('SW registriert:', reg.scope);
 
-      // Prüfe sofort, ob ein SW wartet
-      if (reg.waiting) {
-        newWorker = reg.waiting;
-        showUpdateBanner();
-      }
+        if (reg.waiting) {
+          newWorker = reg.waiting;
+          showUpdateBanner();
+        }
 
-      // Neuer SW wird installiert
-      reg.addEventListener('updatefound', () => {
-        newWorker = reg.installing;
-        newWorker.addEventListener('statechange', () => {
-          if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-            showUpdateBanner(); // Nur wenn wirklich ein Update da ist!
-          }
+        reg.addEventListener('updatefound', () => {
+          newWorker = reg.installing;
+          newWorker.addEventListener('statechange', () => {
+            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+              showUpdateBanner();
+            }
+          });
         });
-      });
-    })
-    .catch(err => console.error('SW Registrierung fehlgeschlagen:', err));
+      })
+      .catch(err => console.error('SW Registrierung fehlgeschlagen:', err));
 
-  // Nach Update → Seite neu laden
-  navigator.serviceWorker.addEventListener('controllerchange', () => {
-    window.location.reload();
-  });
-}
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      window.location.reload();
+    });
+  }
+});
 </script>
 </head>
 <body>
@@ -1595,6 +1591,10 @@ if (item.rotten_rating != null) {
 
 // Pfeile + Wischen (wie vorher)
 const sliderContainer = document.getElementById('slider-container');
+if (sliderContainer) {
+  sliderContainer.addEventListener('scroll', updateArrowState);
+  window.addEventListener('resize', updateArrowState);
+}
 
 function updateArrowState() {
   const left = document.querySelector('.slider-btn.left');
