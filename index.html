@@ -467,7 +467,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Fritflix Feedback">
 <script>
-const VERSION = 'v1.2.9';
+const VERSION = 'v1.3.0';
 
 window.addEventListener('DOMContentLoaded', () => {
   if ('serviceWorker' in navigator) {
@@ -1416,28 +1416,35 @@ async function loadLatestItems() {
       return;
     }
 
-    data.items.forEach(item => {
-      const audioHtml = (item.audio_tracks || []).map(track => {
-        const flag = getFlag(track.language || 'unbekannt');
-        let type = (track.type || '–')
-          .replace(/Dolby Digital Plus/gi, 'DD+')
-          .replace(/Dolby Digital/gi, 'DD')
-          .replace(/Dolby Atmos/gi, 'Atmos')
-          .replace(/\s*5\.1\s*/g, ' 5.1')
-          .replace(/Stereo/gi, '2.0');
-        return `<span>${flag} ${type.trim()}</span>`;
-      }).join('<br>') || '–';
+container.onclick = (e) => {
+  const el = e.target.closest('.slider-item[data-item]');
+  if (!el) return;
+  const raw = decodeURIComponent(el.getAttribute('data-item'));
+  openDetail(JSON.parse(raw));
+};
 
-      let seasonInfo = '';
-      if (item.type === 'Series' && item.season_count) {
-        seasonInfo = `S${String(item.season_count).padStart(2,'0')}`;
-        if (item.latest_episode?.season && item.latest_episode?.episode) {
-          seasonInfo += ` • S${item.latest_episode.season} E${item.latest_episode.episode}`;
-        }
-      }
-      
+data.items.forEach(item => {
+  const audioHtml = (item.audio_tracks || []).map(track => {
+    const flag = getFlag(track.language || 'unbekannt');
+    let type = (track.type || '–')
+      .replace(/Dolby Digital Plus/gi, 'DD+')
+      .replace(/Dolby Digital/gi, 'DD')
+      .replace(/Dolby Atmos/gi, 'Atmos')
+      .replace(/\s*5\.1\s*/g, ' 5.1')
+      .replace(/Stereo/gi, '2.0');
+    return `<span>${flag} ${type.trim()}</span>`;
+  }).join('<br>') || '–';
+
+  let seasonInfo = '';
+  if (item.type === 'Series' && item.season_count) {
+    seasonInfo = `S${String(item.season_count).padStart(2,'0')}`;
+    if (item.latest_episode?.season && item.latest_episode?.episode) {
+      seasonInfo += ` • S${item.latest_episode.season} E${item.latest_episode.episode}`;
+    }
+  }
+
   const html = `
-    <div class="slider-item" data-item='${encodeURIComponent(JSON.stringify(item))}'>
+    <div class="slider-item" data-item="${encodeURIComponent(JSON.stringify(item))}">
       <img src="${item.cover_url}" alt="${item.name}" loading="lazy"
            onerror="this.src='https://via.placeholder.com/110x165?text=?';">
       <h4>${item.name} ${item.year ? `(${item.year})` : ''}</h4>
@@ -1447,15 +1454,8 @@ async function loadLatestItems() {
     </div>
   `;
   container.innerHTML += html;
-}); 
-      
-document.querySelectorAll('.slider-item[data-item]').forEach(el => {
-  el.addEventListener('click', () => {
-    const raw = decodeURIComponent(el.getAttribute('data-item'));
-    openDetail(JSON.parse(raw));
-  });
 });
-
+    
     updateArrowState();
   } catch (e) {
     console.error('Latest Items Fehler:', e);
