@@ -244,6 +244,24 @@
       .note-btn { font-size: 1.2em; width: 50px; min-height: 50px; }
       .summary-bars { width: 50%; }
     }
+
+      /* Slider */
+    #latest-slider {
+      width: 95%; max-width: 420px; overflow: hidden; margin: 1em 0;
+    }
+    .slider-container {
+      display: flex; transition: transform 0.5s ease; gap: 1em; padding: 0.5em;
+    }
+    .slider-item {
+      flex: 0 0 150px; background: #222; border-radius: 10px; padding: 0.5em; text-align: left;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+    }
+    .slider-item img { width: 100%; height: auto; border-radius: 8px; }
+    .slider-item h4 { font-size: 0.9em; margin: 0.4em 0 0.2em; }
+    .slider-item p { font-size: 0.75em; opacity: 0.8; margin: 0.2em 0; }
+    .slider-controls { display: flex; justify-content: center; gap: 1em; margin-top: 0.5em; }
+    .slider-btn { background: var(--primary); color: #fff; padding: 0.4em 1em; border-radius: 0.5em; cursor: pointer; }
+    .slider-btn:disabled { background: #666; }
   </style>
   <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
   <link rel="manifest" href="manifest.json">
@@ -252,7 +270,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Fritflix Feedback">
 <script>
-const VERSION = 'v1.2.3'; // ← Bei jedem Update ändern!
+const VERSION = 'v1.2.4'; // ← Bei jedem Update ändern!
 
 // === UPDATE BANNER STEUERUNG ===
 if ('serviceWorker' in navigator) {
@@ -339,6 +357,15 @@ if ('serviceWorker' in navigator) {
 <div id="client-speedtest-result"
      style="margin:0.4em auto 0.8em; max-width:420px; width:95%; font-size:0.9em; text-align:left; opacity:0.9;">
   Noch kein Test ausgeführt.
+</div>
+
+<div id="latest-slider">
+    <h2>Neueste Filme & Serien</h2>
+    <div class="slider-container" id="slider-container"></div>
+    <div class="slider-controls">
+      <button class="slider-btn" onclick="slideLeft()">◀</button>
+      <button class="slider-btn" onclick="slideRight()">▶</button>
+    </div>
 </div>
 
   <!-- FAQ Button (unter Speedtest, grün) -->
@@ -1174,6 +1201,56 @@ async function runClientSpeedtest() {
     // Init
     loadStatus();
     setInterval(loadStatus, 20000);
+
+    // Slider-Logik
+    let sliderPos = 0;
+    async function loadLatestItems() {
+      try {
+        const res = await fetch(`${API_BASE}/latest/items?limit=20`);
+        const data = await res.json();
+        const container = document.getElementById('slider-container');
+        container.innerHTML = '';
+        data.items.forEach(item => {
+          const audioHtml = item.audio_tracks.map(track => {
+            const flag = getFlag(track.language);  // Flag-Funktion unten
+            return `<span>${flag} ${track.type}</span>`;
+          }).join('<br>');
+          const html = `
+            <div class="slider-item">
+              <img src="${item.cover_url}" alt="${item.name}" loading="lazy">
+              <h4>${item.name} (${item.year || ''})</h4>
+              <p>Qualität: ${item.quality}</p>
+              <p>Ton: ${audioHtml}</p>
+            </div>
+          `;
+          container.innerHTML += html;
+        });
+      } catch (e) {
+        console.error('Latest Items Fehler:', e);
+      }
+    }
+    function getFlag(lang) {
+      const flags = {
+        'de': '🇩🇪', 'en': '🇺🇸', 'es': '🇪🇸', 'fr': '🇫🇷', // Erweitere bei Bedarf
+        'unbekannt': '❓'
+      };
+      return flags[lang.toLowerCase()] || '🌐';
+    }
+    function slideLeft() {
+      sliderPos = Math.min(sliderPos + 1, 0);
+      updateSlider();
+    }
+    function slideRight() {
+      const maxPos = -(document.querySelectorAll('.slider-item').length - 3); // Zeige 3 Items pro Slide
+      sliderPos = Math.max(sliderPos - 1, maxPos);
+      updateSlider();
+    }
+    function updateSlider() {
+      const container = document.getElementById('slider-container');
+      container.style.transform = `translateX(${sliderPos * 160}px)`;  // 150px Item + 10px Gap
+    }
+    // Init
+    loadLatestItems();
   </script>
 
   <div id="update-banner" style="
