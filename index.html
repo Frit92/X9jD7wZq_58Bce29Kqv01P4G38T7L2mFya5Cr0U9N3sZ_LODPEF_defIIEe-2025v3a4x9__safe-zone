@@ -467,7 +467,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Fritflix Feedback">
 <script>
-const VERSION = 'v1.3.0';
+const VERSION = 'v1.3.1';
 
 window.addEventListener('DOMContentLoaded', () => {
   if ('serviceWorker' in navigator) {
@@ -1530,33 +1530,60 @@ function openDetail(item) {
   const modal = document.getElementById('detailModal');
   const content = document.getElementById('detailContent');
 
+  // Trailer
   let trailerBtn = '';
   if (item.trailer) {
     trailerBtn = `<a href="${item.trailer}" target="_blank" class="detail-btn trailer">🎬 Trailer ansehen</a>`;
   }
 
-let imdbBtn = '';
-if (item.imdb_id) {
-  imdbBtn = `
-    <a href="https://www.imdb.com/title/${item.imdb_id}"
-       target="_blank"
-       class="detail-btn imdb">
-       ⭐ IMDb
-    </a>
-  `;
-}
+  // IMDb Link (nur wenn imdb_id da ist)
+  let imdbBtn = '';
+  if (item.imdb_id) {
+    imdbBtn = `
+      <a href="https://www.imdb.com/title/${item.imdb_id}"
+         target="_blank"
+         class="detail-btn imdb">
+         ⭐ IMDb öffnen
+      </a>
+    `;
+  }
 
-let rottenHtml = '';
-if (item.rotten_rating != null) {
-  const score = Number(item.rotten_rating);
-  const rtClass = score >= 60 ? 'fresh' : 'rotten';
-  rottenHtml = `
-    <div class="detail-btn rt ${rtClass}">
-      🍅 Rotten ${score}%
-    </div>
-  `;
-}
+  // ✅ Rating (primär Jellyfin community_rating, fallback TMDB tmdb_rating)
+  const jellyRating = (item.community_rating != null && !Number.isNaN(Number(item.community_rating)))
+    ? Number(item.community_rating)
+    : null;
 
+  const tmdbRating = (item.tmdb_rating != null && !Number.isNaN(Number(item.tmdb_rating)))
+    ? Number(item.tmdb_rating)
+    : null;
+
+  const ratingValue = jellyRating ?? tmdbRating;
+  const ratingSource = jellyRating != null ? 'Jellyfin' : (tmdbRating != null ? 'TMDB' : null);
+
+  let ratingHtml = '';
+  if (ratingValue != null) {
+    const votes = item.tmdb_votes ? ` <small style="opacity:.85;">(${item.tmdb_votes} Votes)</small>` : '';
+    ratingHtml = `
+      <div class="detail-btn imdb" style="cursor:default;">
+        ⭐ ${ratingValue.toFixed(1)}/10 ${ratingSource ? `<small style="opacity:.85;">${ratingSource}</small>` : ''}
+        ${ratingSource === 'TMDB' ? votes : ''}
+      </div>
+    `;
+  }
+
+  // Rotten (CriticRating aus Jellyfin, 0-100) – nur wenn Zahl
+  let rottenHtml = '';
+  if (item.rotten_rating != null && !Number.isNaN(Number(item.rotten_rating))) {
+    const score = Math.round(Number(item.rotten_rating));
+    const rtClass = score >= 60 ? 'fresh' : 'rotten';
+    rottenHtml = `
+      <div class="detail-btn rt ${rtClass}" style="cursor:default;">
+        🍅 Rotten ${score}%
+      </div>
+    `;
+  }
+
+  // Serieninfo
   let seasonInfo = '';
   if (item.type === 'Series') {
     seasonInfo = `<p><strong>Staffeln:</strong> ${item.season_count || '–'}</p>`;
@@ -1565,7 +1592,7 @@ if (item.rotten_rating != null) {
       seasonInfo += `<p><strong>Neueste:</strong> S${ep.season || '?'} E${ep.episode || '?'} – ${ep.name || 'Episode'}</p>`;
     }
   }
-
+  
   content.innerHTML = `
     <div class="detail-layout">
       <div style="flex:1; min-width:240px; text-align:center;">
@@ -1584,6 +1611,7 @@ if (item.rotten_rating != null) {
         ${seasonInfo}
         <div class="detail-actions">
           ${trailerBtn}
+          ${ratingHtml}
           ${imdbBtn}
           ${rottenHtml}
         </div>
