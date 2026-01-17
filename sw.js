@@ -1,5 +1,5 @@
 // sw.js – Fritflix Feedback PWA Service Worker
-// Version: v1.3.0
+// Version: v1.3.1
 // Pfad: /X9jD7wZq_58Bce29Kqv01P4G38T7L2mFya5Cr0U9N3sZ_LODPEF_defIIEe-2025v3a4x9__safe-zone
 
 const CACHE_NAME = 'fritflix-feedback-v1.3.0';
@@ -104,6 +104,7 @@ self.addEventListener('message', event => {
     self.skipWaiting();
   }
 });
+
 
 
 
