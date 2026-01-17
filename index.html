@@ -467,7 +467,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Fritflix Feedback">
 <script>
-const VERSION = 'v1.3.1';
+const VERSION = 'v1.3.2';
 
 window.addEventListener('DOMContentLoaded', () => {
   if ('serviceWorker' in navigator) {
@@ -1536,40 +1536,50 @@ function openDetail(item) {
     trailerBtn = `<a href="${item.trailer}" target="_blank" class="detail-btn trailer">🎬 Trailer ansehen</a>`;
   }
 
-  // IMDb Link (nur wenn imdb_id da ist)
-  let imdbBtn = '';
-  if (item.imdb_id) {
-    imdbBtn = `
-      <a href="https://www.imdb.com/title/${item.imdb_id}"
-         target="_blank"
-         class="detail-btn imdb">
-         ⭐ IMDb öffnen
-      </a>
-    `;
+  // === Kombi-Rating-Button: IMDb (wenn möglich) sonst TMDB ===
+const jellyRating = (item.community_rating != null && !Number.isNaN(Number(item.community_rating)))
+  ? Number(item.community_rating)
+  : null;
+
+const tmdbRating = (item.tmdb_rating != null && !Number.isNaN(Number(item.tmdb_rating)))
+  ? Number(item.tmdb_rating)
+  : null;
+
+// Label + Linklogik:
+// - Wenn Jellyfin-Rating da ist UND imdb_id da ist => "IMDb" + Link zu IMDb
+// - Sonst wenn TMDB-Rating da ist UND tmdb_id da ist => "TMDB" + Link zu TMDB
+// - Sonst wenn Jellyfin-Rating da ist (aber kein imdb_id) => "IMDb" aber ohne Link (optional)
+// - Sonst nix
+let ratingHtml = '';
+
+if (jellyRating != null || tmdbRating != null) {
+  let label = '';
+  let score = null;
+  let href = null;
+
+  if (jellyRating != null) {
+    score = jellyRating;
+    label = 'IMDb';
+    if (item.imdb_id) {
+      href = `https://www.imdb.com/title/${item.imdb_id}`;
+    }
+  } else if (tmdbRating != null) {
+    score = tmdbRating;
+    label = 'TMDB';
+    if (item.tmdb_id) {
+      href = `https://www.themoviedb.org/${(item.type === 'Series' ? 'tv' : 'movie')}/${item.tmdb_id}`;
+    }
   }
 
-  // ✅ Rating (primär Jellyfin community_rating, fallback TMDB tmdb_rating)
-  const jellyRating = (item.community_rating != null && !Number.isNaN(Number(item.community_rating)))
-    ? Number(item.community_rating)
-    : null;
+  if (score != null) {
+    const text = `⭐ ${score.toFixed(1)}/10 ${label}`;
 
-  const tmdbRating = (item.tmdb_rating != null && !Number.isNaN(Number(item.tmdb_rating)))
-    ? Number(item.tmdb_rating)
-    : null;
-
-  const ratingValue = jellyRating ?? tmdbRating;
-  const ratingSource = jellyRating != null ? 'Jellyfin' : (tmdbRating != null ? 'TMDB' : null);
-
-  let ratingHtml = '';
-  if (ratingValue != null) {
-    const votes = item.tmdb_votes ? ` <small style="opacity:.85;">(${item.tmdb_votes} Votes)</small>` : '';
-    ratingHtml = `
-      <div class="detail-btn imdb" style="cursor:default;">
-        ⭐ ${ratingValue.toFixed(1)}/10 ${ratingSource ? `<small style="opacity:.85;">${ratingSource}</small>` : ''}
-        ${ratingSource === 'TMDB' ? votes : ''}
-      </div>
-    `;
+    // Wenn Link da: als <a>, sonst als <div>
+    ratingHtml = href
+      ? `<a href="${href}" target="_blank" class="detail-btn imdb">${text}</a>`
+      : `<div class="detail-btn imdb" style="cursor:default;">${text}</div>`;
   }
+}
 
   // Rotten (CriticRating aus Jellyfin, 0-100) – nur wenn Zahl
   let rottenHtml = '';
@@ -1612,7 +1622,6 @@ function openDetail(item) {
         <div class="detail-actions">
           ${trailerBtn}
           ${ratingHtml}
-          ${imdbBtn}
           ${rottenHtml}
         </div>
       </div>
