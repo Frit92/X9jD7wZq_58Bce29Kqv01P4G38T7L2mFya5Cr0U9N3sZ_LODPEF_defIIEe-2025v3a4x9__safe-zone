@@ -140,6 +140,45 @@
     .speedtest-btn.success { background: var(--success); }
     .speedtest-btn.error { background: var(--error); }
 
+    /* Push-Button – andere Farbe (z. B. Lila/Violett) */
+#push-btn {
+  background: #6a1b9a;          /* dunkles Lila */
+  color: white;
+}
+
+#push-btn:hover {
+  background: #7e57c2;          /* heller beim Hover */
+}
+
+#push-btn.success {
+  background: #2e7d32;          /* grün bei Erfolg */
+}
+
+#push-btn.error {
+  background: #d32f2f;          /* rot bei Fehler */
+}
+
+#push-btn.loading {
+  background: #555;
+}
+
+/* Kleiner Status-Text im Button */
+.push-status-inline {
+  font-size: 0.82em;
+  opacity: 0.85;
+  display: block;
+  margin-top: 0.25em;
+  font-weight: normal;
+}
+
+.push-status-inline strong {
+  font-weight: 600;
+}
+
+.push-status-inline:has(✓) {
+  color: #66bb6a;   /* hellgrün */
+}
+
     #modal {
       display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
       background: #333; padding: 1.0em 1.0em 1.2em; border-radius: 0.8em;
@@ -488,7 +527,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Fritflix Feedback">
 <script>
-const VERSION = 'v1.3.8';
+const VERSION = 'v1.4.0';
 
 window.addEventListener('DOMContentLoaded', () => {
   if (!('serviceWorker' in navigator)) {
@@ -582,13 +621,10 @@ window.addEventListener('DOMContentLoaded', () => {
   </details>
 
   <!-- Push Button -->
-  <button id="push-btn" class="speedtest-btn" onclick="enablePush()">
-  🔔 Push aktivieren (neue Titel)
+  <button id="push-btn" class="speedtest-btn">
+  🔔 Push aktivieren
+  <span id="push-status-inline" class="push-status-inline">prüfe Status...</span>
 </button>
-
-<div id="push-status" style="margin:-0.2em auto 0.8em; max-width:420px; width:95%; font-size:0.9em; text-align:left; opacity:0.9;">
-  Push: nicht aktiviert
-</div>
   
   <!-- Speedtest Button -->
   <button id="speedtest-btn" class="speedtest-btn" onclick="runSpeedtest()">⏱️ Speedtest (Server) starten</button>
@@ -988,55 +1024,55 @@ async function getSWRegistration() {
 
 // Statusanzeige + Button-State IMMER hier zentral setzen
 async function refreshPushUI() {
-  const el = PUSH_STATUS_EL();
   const btn = document.getElementById('push-btn');
-  if (!el || !btn) return;
+  const statusEl = document.getElementById('push-status-inline');
+  
+  if (!btn || !statusEl) return;
 
   try {
-    const supported =
-      ('Notification' in window) &&
-      ('PushManager' in window) &&
-      ('serviceWorker' in navigator);
+    const supported = 
+      'Notification' in window && 
+      'PushManager' in window && 
+      'serviceWorker' in navigator;
 
     if (!supported) {
-      el.textContent = 'Push: nicht unterstützt (Browser)';
       btn.disabled = true;
       btn.innerHTML = '🔔 Push nicht unterstützt';
-      btn.onclick = null;
+      statusEl.textContent = '';
       return;
     }
 
     const perm = Notification.permission;
 
-    // Permission nicht erteilt
+    // Noch keine Berechtigung → Button zum Aktivieren
     if (perm !== 'granted') {
-      el.textContent = `Push: nicht aktiviert (Berechtigung: ${perm})`;
       btn.disabled = false;
-      btn.innerHTML = '🔔 Push aktivieren (neue Titel)';
+      btn.innerHTML = `🔔 Push aktivieren<br><span class="push-status-inline">nicht aktiviert</span>`;
       btn.onclick = enablePush;
+      statusEl.textContent = '';  // wird schon im HTML gesetzt
       return;
     }
 
-    // Permission erteilt -> Subscription prüfen
+    // Berechtigung da → Subscription prüfen
     const reg = await getSWRegistration();
     const sub = await reg.pushManager.getSubscription();
 
     if (sub) {
-      el.textContent = 'Push: aktiviert ✅';
+      // Push ist aktiv
       btn.disabled = false;
-      btn.innerHTML = '🔔 Push deaktivieren';
+      btn.innerHTML = `🔔 Push deaktivieren<br><span class="push-status-inline"><strong>aktiviert ✓</strong></span>`;
       btn.onclick = disablePush;
+      btn.classList.add('success');     // optional: grün machen
     } else {
-      el.textContent = 'Push: Berechtigung ok, aber nicht abonniert';
+      // Berechtigung da, aber kein Abo
       btn.disabled = false;
-      btn.innerHTML = '🔔 Push aktivieren (neue Titel)';
+      btn.innerHTML = `🔔 Push aktivieren<br><span class="push-status-inline">nicht abonniert</span>`;
       btn.onclick = enablePush;
     }
-  } catch (e) {
-    console.warn('Push UI Fehler:', e);
-    el.textContent = 'Push: Status konnte nicht geprüft werden';
-    btn.disabled = false;
-    btn.innerHTML = '🔔 Push aktivieren (neue Titel)';
+
+  } catch (err) {
+    console.warn('Push-Status Fehler:', err);
+    btn.innerHTML = `🔔 Push aktivieren<br><span class="push-status-inline">Statusfehler</span>`;
     btn.onclick = enablePush;
   }
 }
