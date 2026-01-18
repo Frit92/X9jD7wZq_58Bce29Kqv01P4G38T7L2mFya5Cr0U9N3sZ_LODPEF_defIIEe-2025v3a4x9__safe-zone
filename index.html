@@ -488,7 +488,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Fritflix Feedback">
 <script>
-const VERSION = 'v1.3.3';
+const VERSION = 'v1.3.4';
 
 window.addEventListener('DOMContentLoaded', () => {
   if ('serviceWorker' in navigator) {
@@ -537,7 +537,7 @@ window.addEventListener('DOMContentLoaded', () => {
   <!-- Banner -->
   <div id="switch-banner">
     <span class="icon">Warnung</span>
-    <span id="switch-text">SERVERWECHSEL – Verbindung wird umgeschaltet…</span>
+    <span id="switch-text">SERVERSTÖRUNG – Bitte in 5min erneut probieren…</span>
   </div>
 
   <!-- Status -->
@@ -559,6 +559,15 @@ window.addEventListener('DOMContentLoaded', () => {
     <div id="status-box">Lade Server-Status…</div>
   </details>
 
+  <!-- Push Button -->
+  <button id="push-btn" class="speedtest-btn" onclick="enablePush()">
+  🔔 Push aktivieren (neue Titel)
+</button>
+
+<div id="push-status" style="margin:-0.2em auto 0.8em; max-width:420px; width:95%; font-size:0.9em; text-align:left; opacity:0.9;">
+  Push: nicht aktiviert
+</div>
+  
   <!-- Speedtest Button -->
   <button id="speedtest-btn" class="speedtest-btn" onclick="runSpeedtest()">⏱️ Speedtest (Server) starten</button>
 <button id="client-speedtest-btn"
@@ -859,6 +868,7 @@ window.addEventListener('DOMContentLoaded', () => {
     emailjs.init({ publicKey: "E4jHB9-hSCQJ6yEUf" });
     const API_BASE = "https://fritflix.cc/api";
     const SPEEDTEST_TOKEN = "fhe9wzr83ezrw7ft72636770pueu9uft";
+    const APP_TOKEN = "HHUEZ3dkrrzfg6wr§1jdkfgfbW2974t52";
     const OFFLINE_THRESHOLD_MS = 15 * 60 * 1000;
     const FETCH_TIMEOUT_MS = 10000;
     const FETCH_TIMEOUT_MS_SPEEDTEST = 120000;
@@ -921,6 +931,130 @@ window.addEventListener('DOMContentLoaded', () => {
         new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), ms))
       ]);
     }
+  function apiFetch(path, opts = {}, timeoutMs = FETCH_TIMEOUT_MS) {
+  const headers = {
+    ...(opts.headers || {}),
+    "X-App-Token": APP_TOKEN,
+    "Accept": "application/json",
+  };
+
+  return fetchWithTimeout(`${API_BASE}${path}`, { ...opts, headers }, timeoutMs);
+}
+
+// === PUSH CONFIG ===
+const VAPID_PUBLIC_KEY = "DEIN_VAPID_PUBLIC_KEY_HIER"; // aus .env / Backend
+const PUSH_STATUS_EL = () => document.getElementById('push-status');
+
+function urlBase64ToUint8Array(base64String) {
+  const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
+  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+  const rawData = atob(base64);
+  const output = new Uint8Array(rawData.length);
+  for (let i = 0; i < rawData.length; i++) output[i] = rawData.charCodeAt(i);
+  return output;
+}
+
+async function getSWRegistration() {
+  if (!('serviceWorker' in navigator)) throw new Error('Service Worker nicht verfügbar');
+  const reg = await navigator.serviceWorker.getRegistration();
+  if (!reg) throw new Error('Service Worker nicht registriert (bitte Seite neu laden)');
+  return reg;
+}
+
+// Statusanzeige aktualisieren
+async function refreshPushUI() {
+  const el = PUSH_STATUS_EL();
+  if (!el) return;
+
+  try {
+    if (!('Notification' in window) || !('PushManager' in window)) {
+      el.textContent = 'Push: nicht unterstützt (Browser)';
+      return;
+    }
+
+    const perm = Notification.permission;
+    const reg = await navigator.serviceWorker.getRegistration();
+    const sub = reg ? await reg.pushManager.getSubscription() : null;
+
+    if (perm !== 'granted') {
+      el.textContent = `Push: nicht aktiviert (Berechtigung: ${perm})`;
+      return;
+    }
+
+    el.textContent = sub ? 'Push: aktiviert ✅' : 'Push: Berechtigung ok, aber nicht abonniert';
+  } catch {
+    el.textContent = 'Push: Status konnte nicht geprüft werden';
+  }
+}
+
+   async function enablePush() {
+  const btn = document.getElementById('push-btn');
+  if (btn) { btn.disabled = true; btn.innerHTML = '🔔 Push wird aktiviert…'; }
+
+  try {
+    if (!('Notification' in window) || !('serviceWorker' in navigator) || !('PushManager' in window)) {
+      throw new Error('Push wird von diesem Browser nicht unterstützt');
+    }
+
+    // Permission
+    const perm = await Notification.requestPermission();
+    if (perm !== 'granted') {
+      throw new Error('Benachrichtigungen wurden nicht erlaubt');
+    }
+
+    // Subscribe
+    const reg = await getSWRegistration();
+    const existing = await reg.pushManager.getSubscription();
+    const sub = existing || await reg.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
+    });
+
+    // An Backend schicken
+    const res = await apiFetch('/push/subscribe', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ subscription: sub }),
+    }, 10000);
+
+    if (!res.ok) throw new Error(`Backend: HTTP ${res.status}`);
+
+    if (btn) { btn.disabled = false; btn.innerHTML = '🔔 Push deaktivieren'; btn.onclick = disablePush; }
+    await refreshPushUI();
+  } catch (e) {
+    console.error('Push aktivieren Fehler:', e);
+    alert('Push aktivieren fehlgeschlagen: ' + (e.message || e));
+    if (btn) { btn.disabled = false; btn.innerHTML = '🔔 Push aktivieren (neue Titel)'; btn.onclick = enablePush; }
+    await refreshPushUI();
+  }
+}
+
+async function disablePush() {
+  const btn = document.getElementById('push-btn');
+  if (btn) { btn.disabled = true; btn.innerHTML = '🔕 Push wird deaktiviert…'; }
+
+  try {
+    const reg = await getSWRegistration();
+    const sub = await reg.pushManager.getSubscription();
+    if (sub) {
+      // Backend informieren (optional, aber sauber)
+      await apiFetch('/push/unsubscribe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ endpoint: sub.endpoint }),
+      }, 10000);
+
+      await sub.unsubscribe();
+    }
+
+    if (btn) { btn.disabled = false; btn.innerHTML = '🔔 Push aktivieren (neue Titel)'; btn.onclick = enablePush; }
+    await refreshPushUI();
+  } catch (e) {
+    console.error('Push deaktivieren Fehler:', e);
+    if (btn) { btn.disabled = false; btn.innerHTML = '🔔 Push aktivieren (neue Titel)'; btn.onclick = enablePush; }
+    await refreshPushUI();
+  }
+} 
 
 function setBanner(mode, extraText) {
   const banner = document.getElementById('switch-banner');
@@ -956,7 +1090,7 @@ function setBanner(mode, extraText) {
 
     async function loadStatus() {
       try {
-        const res = await fetchWithTimeout(`${API_BASE}/status`);
+        const res = await fetchWithTimeout(`/status`);
         const data = await res.json();
 
         lastSuccessTs = Date.now();
@@ -1066,7 +1200,7 @@ function setBanner(mode, extraText) {
     }
 
     async function getStatusSafe() {
-      const res = await fetchWithTimeout(`${API_BASE}/status`, {}, FETCH_TIMEOUT_MS_STATUS);
+      const res = await fetchWithTimeout(`/status`, {}, FETCH_TIMEOUT_MS_STATUS);
       return res.json();
     }
 
@@ -1425,7 +1559,7 @@ let sliderPos = 0;
 
 async function loadLatestItems() {
   try {
-    const res = await fetch(`${API_BASE}/latest/items?limit=20`);
+    const res = await fetch(`/latest/items?limit=20`);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();
 
@@ -1726,6 +1860,16 @@ if (sliderContainer) {
 // Init
 loadLatestItems();
 setInterval(loadLatestItems, 300000);  // Slider alle 5 Min
+
+refreshPushUI().then(async () => {
+  const reg = await navigator.serviceWorker.getRegistration();
+  const sub = reg ? await reg.pushManager.getSubscription() : null;
+  const btn = document.getElementById('push-btn');
+  if (btn && Notification.permission === 'granted' && sub) {
+    btn.innerHTML = '🔔 Push deaktivieren';
+    btn.onclick = disablePush;
+  }
+});
   </script>
 
   <div id="update-banner" style="
