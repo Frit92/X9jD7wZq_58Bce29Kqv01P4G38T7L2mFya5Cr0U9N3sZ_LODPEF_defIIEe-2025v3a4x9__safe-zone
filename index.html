@@ -459,6 +459,27 @@
     margin: 0 auto 16px;
   }
 }
+  /* kleine Zeilen unter "Film • Qualität" */
+.detail-audio,
+.detail-subs{
+  margin-top: 4px;
+  font-size: 0.85em;
+  opacity: 0.9;
+  line-height: 1.25;
+  color: #ddd;
+}
+
+/* forced klein & unauffällig */
+.detail-subs-forced{
+  margin-left: 6px;
+  font-size: 0.9em;
+  opacity: 0.7;
+}
+
+/* Buttons die keine Links sind */
+.detail-btn.static{
+  cursor: default;
+}
   </style>
   <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
   <link rel="manifest" href="manifest.json">
@@ -1526,71 +1547,105 @@ function getFlag(lang) {
   return flags[normalized] || '🌐';
 }
 
+// ===============================
+// Helpers: Dedup + Format
+// ===============================
+function uniqTracks(tracks, keyFn) {
+  const seen = new Set();
+  const out = [];
+  for (const t of (tracks || [])) {
+    const k = keyFn(t);
+    if (seen.has(k)) continue;
+    seen.add(k);
+    out.push(t);
+  }
+  return out;
+}
+
+function safeNum(v) {
+  const n = Number(v);
+  return (v != null && !Number.isNaN(n)) ? n : null;
+}
+
+// Audio: dedup + eine Zeile
+function formatAudioLine(audioTracks) {
+  const aud = uniqTracks(audioTracks, t => `${t.language || ''}|${t.type || ''}`);
+  if (!aud.length) return '';
+
+  return `🔊 ${aud.map(t => `${getFlag(t.language)} ${t.type || '–'}`.trim()).join(' • ')}`;
+}
+
+// Subs: dedup + FULL wichtig, FORCED klein
+function formatSubtitleLines(subTracks) {
+  const subs = uniqTracks(subTracks, s => `${s.language || ''}|${s.kind || 'full'}|${s.format || ''}`);
+  if (!subs.length) return { full: '', forcedHtml: '' };
+
+  const subsFull = subs.filter(s => (s.kind || 'full') === 'full');
+  const subsForced = subs.filter(s => s.kind === 'forced');
+
+  const full = subsFull.length
+    ? `💬 ${subsFull
+        .map(s => `${getFlag(s.language)} ${(s.format || '').trim()}`.trim())
+        .join(' • ')}`
+    : '';
+
+  const forcedHtml = subsForced.length
+    ? `<span class="detail-subs-forced">(forced: ${subsForced.map(s => getFlag(s.language)).join(' ')})</span>`
+    : '';
+
+  return { full, forcedHtml };
+}
+
+// ===============================
+// Modal: Detail
+// ===============================
 function openDetail(item) {
   const modal = document.getElementById('detailModal');
   const content = document.getElementById('detailContent');
 
   // Trailer
-  let trailerBtn = '';
-  if (item.trailer) {
-    trailerBtn = `<a href="${item.trailer}" target="_blank" class="detail-btn trailer">🎬 Trailer ansehen</a>`;
-  }
+  const trailerBtn = item.trailer
+    ? `<a href="${item.trailer}" target="_blank" class="detail-btn trailer">🎬 Trailer ansehen</a>`
+    : '';
 
-  // === Kombi-Rating-Button: IMDb (wenn möglich) sonst TMDB ===
-const jellyRating = (item.community_rating != null && !Number.isNaN(Number(item.community_rating)))
-  ? Number(item.community_rating)
-  : null;
+  // === Kombi-Rating: Jellyfin CommunityRating -> "IMDb" (Link nur wenn imdb_id), sonst TMDB ===
+  const jellyRating = safeNum(item.community_rating);
+  const tmdbRating = safeNum(item.tmdb_rating);
 
-const tmdbRating = (item.tmdb_rating != null && !Number.isNaN(Number(item.tmdb_rating)))
-  ? Number(item.tmdb_rating)
-  : null;
+  let ratingHtml = '';
+  if (jellyRating != null || tmdbRating != null) {
+    let label = '';
+    let score = null;
+    let href = null;
 
-// Label + Linklogik:
-// - Wenn Jellyfin-Rating da ist UND imdb_id da ist => "IMDb" + Link zu IMDb
-// - Sonst wenn TMDB-Rating da ist UND tmdb_id da ist => "TMDB" + Link zu TMDB
-// - Sonst wenn Jellyfin-Rating da ist (aber kein imdb_id) => "IMDb" aber ohne Link (optional)
-// - Sonst nix
-let ratingHtml = '';
-
-if (jellyRating != null || tmdbRating != null) {
-  let label = '';
-  let score = null;
-  let href = null;
-
-  if (jellyRating != null) {
-    score = jellyRating;
-    label = 'IMDb';
-    if (item.imdb_id) {
-      href = `https://www.imdb.com/title/${item.imdb_id}`;
+    if (jellyRating != null) {
+      score = jellyRating;
+      label = 'IMDb';
+      if (item.imdb_id) href = `https://www.imdb.com/title/${item.imdb_id}`;
+    } else if (tmdbRating != null) {
+      score = tmdbRating;
+      label = 'TMDB';
+      if (item.tmdb_id) {
+        const kind = (item.type === 'Series') ? 'tv' : 'movie';
+        href = `https://www.themoviedb.org/${kind}/${item.tmdb_id}`;
+      }
     }
-  } else if (tmdbRating != null) {
-    score = tmdbRating;
-    label = 'TMDB';
-    if (item.tmdb_id) {
-      href = `https://www.themoviedb.org/${(item.type === 'Series' ? 'tv' : 'movie')}/${item.tmdb_id}`;
+
+    if (score != null) {
+      const text = `⭐ ${score.toFixed(1)}/10 ${label}`;
+      ratingHtml = href
+        ? `<a href="${href}" target="_blank" class="detail-btn imdb">${text}</a>`
+        : `<div class="detail-btn imdb static">${text}</div>`;
     }
   }
 
-  if (score != null) {
-    const text = `⭐ ${score.toFixed(1)}/10 ${label}`;
-
-    // Wenn Link da: als <a>, sonst als <div>
-    ratingHtml = href
-      ? `<a href="${href}" target="_blank" class="detail-btn imdb">${text}</a>`
-      : `<div class="detail-btn imdb" style="cursor:default;">${text}</div>`;
-  }
-}
-
-  // Rotten (CriticRating aus Jellyfin, 0-100) – nur wenn Zahl
+  // Rotten (Jellyfin CriticRating 0–100)
   let rottenHtml = '';
-  if (item.rotten_rating != null && !Number.isNaN(Number(item.rotten_rating))) {
-    const score = Math.round(Number(item.rotten_rating));
+  const rottenScore = safeNum(item.rotten_rating);
+  if (rottenScore != null) {
+    const score = Math.round(rottenScore);
     const rtClass = score >= 60 ? 'fresh' : 'rotten';
-    rottenHtml = `
-      <div class="detail-btn rt ${rtClass}" style="cursor:default;">
-        🍅 Rotten ${score}%
-      </div>
-    `;
+    rottenHtml = `<div class="detail-btn rt ${rtClass} static">🍅 Rotten ${score}%</div>`;
   }
 
   // Serieninfo
@@ -1602,23 +1657,40 @@ if (jellyRating != null || tmdbRating != null) {
       seasonInfo += `<p><strong>Neueste:</strong> S${ep.season || '?'} E${ep.episode || '?'} – ${ep.name || 'Episode'}</p>`;
     }
   }
-  
+
+  // Audio + Subs (DEDUP + kompakt)
+  const audioLine = formatAudioLine(item.audio_tracks);
+
+  const { full: fullSubsLine, forcedHtml: forcedSubsLine } =
+    formatSubtitleLines(item.subtitle_tracks);
+
   content.innerHTML = `
     <div class="detail-layout">
       <div style="flex:1; min-width:240px; text-align:center;">
         <img src="${item.poster_large || item.cover_url}" class="detail-poster" loading="lazy"
              onerror="this.src='https://via.placeholder.com/300x450?text=Poster';">
       </div>
+
       <div style="flex:2; min-width:300px;">
         <h2 class="detail-header">${item.name} ${item.year ? `(${item.year})` : ''}</h2>
+
         <div class="detail-meta">
           ${item.type === 'Movie' ? 'Film' : 'Serie'} • ${item.quality || '–'}
         </div>
+
+        ${audioLine ? `<div class="detail-audio">${audioLine}</div>` : ''}
+        ${(fullSubsLine || forcedSubsLine)
+          ? `<div class="detail-subs">${fullSubsLine} ${forcedSubsLine}</div>`
+          : ''}
+
         <p class="detail-overview">
           ${item.overview || '<i>Keine Beschreibung verfügbar</i>'}
         </p>
+
         ${item.runtime ? `<p><strong>Laufzeit:</strong> ${item.runtime} Min</p>` : ''}
+
         ${seasonInfo}
+
         <div class="detail-actions">
           ${trailerBtn}
           ${ratingHtml}
