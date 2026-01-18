@@ -494,7 +494,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Fritflix Feedback">
 <script>
-const VERSION = 'v1.4.5';
+const VERSION = 'v1.4.6';
 
 window.addEventListener('DOMContentLoaded', () => {
   if (!('serviceWorker' in navigator)) {
@@ -1665,14 +1665,24 @@ data.items.forEach(item => {
     return `<span>${flag} ${type.trim()}</span>`;
   }).join('<br>') || '–';
 
-  let seasonInfo = '';
-  if (item.type === 'Series' && item.season_count) {
-    seasonInfo = `S${String(item.season_count).padStart(2,'0')}`;
-    if (item.latest_episode?.season && item.latest_episode?.episode) {
-      seasonInfo += ` • S${item.latest_episode.season} E${item.latest_episode.episode}`;
-    }
+let seasonInfo = '';
+const hasJFSeasons = item.type === 'Series' && item.season_count_source === 'jellyfin';
+
+if (hasJFSeasons) {
+  const sc = Number(item.season_count);
+  if (Number.isFinite(sc) && sc > 0) {
+    seasonInfo = `${sc} Staffel${sc === 1 ? '' : 'n'}`; // schöner als "S02"
   }
 
+  // Neueste Episode nur anzeigen, wenn vorhanden
+  if (item.latest_episode?.season && item.latest_episode?.episode) {
+    seasonInfo += `${seasonInfo ? ' • ' : ''}S${item.latest_episode.season} E${item.latest_episode.episode}`;
+  }
+}
+  
+const genresShort = (item.genres || []).filter(Boolean).slice(0, 2);
+const genresLine = genresShort.length ? `🎭 ${genresShort.join(' • ')}` : '';
+  
   const html = `
     <div class="slider-item" data-item="${encodeURIComponent(JSON.stringify(item))}">
       <img src="${item.cover_url}" alt="${item.name}" loading="lazy"
@@ -1680,7 +1690,9 @@ data.items.forEach(item => {
       <h4>${item.name} ${item.year ? `(${item.year})` : ''}</h4>
       <p>Qualität: ${item.quality || '–'}</p>
       <p>Ton: ${audioHtml}</p>
+      ${genresLine ? `<p style="font-size:0.68em; color:#aaa; margin:2px 0 0;">${genresLine}</p>` : ''}
       ${seasonInfo ? `<p class="season-info">${seasonInfo}</p>` : ''}
+
     </div>
   `;
   container.innerHTML += html;
@@ -1816,6 +1828,10 @@ function openDetail(item) {
     ? `<a href="${item.trailer}" target="_blank" class="detail-btn trailer">🎬 Trailer ansehen</a>`
     : '';
 
+  const genresHtml = (item.genres && item.genres.length)
+  ? `<p><strong>Genres:</strong> ${item.genres.join(' • ')}</p>`
+  : '';
+
   // === Kombi-Rating: Jellyfin CommunityRating -> "IMDb" (Link nur wenn imdb_id), sonst TMDB ===
   const jellyRating = safeNum(item.community_rating);
   const tmdbRating = safeNum(item.tmdb_rating);
@@ -1857,14 +1873,20 @@ function openDetail(item) {
   }
 
   // Serieninfo
-  let seasonInfo = '';
-  if (item.type === 'Series') {
-    seasonInfo = `<p><strong>Staffeln:</strong> ${item.season_count || '–'}</p>`;
-    if (item.latest_episode) {
-      const ep = item.latest_episode;
-      seasonInfo += `<p><strong>Neueste:</strong> S${ep.season || '?'} E${ep.episode || '?'} – ${ep.name || 'Episode'}</p>`;
-    }
+let seasonInfo = '';
+if (item.type === 'Series') {
+  if (item.season_count_source === 'jellyfin' && item.season_count) {
+    seasonInfo = `<p><strong>Staffeln:</strong> ${item.season_count}</p>`;
+  } else {
+    // optional: gar nichts anzeigen, statt "-"
+    seasonInfo = '';
   }
+
+  if (item.latest_episode) {
+    const ep = item.latest_episode;
+    seasonInfo += `<p><strong>Neueste:</strong> S${ep.season || '?'} E${ep.episode || '?'} – ${ep.name || 'Episode'}</p>`;
+  }
+}
 
   // Audio + Subs (DEDUP + kompakt)
   const audioLine = formatAudioLine(item.audio_tracks);
@@ -1896,6 +1918,7 @@ function openDetail(item) {
         </p>
 
         ${item.runtime ? `<p><strong>Laufzeit:</strong> ${item.runtime} Min</p>` : ''}
+        ${genresHtml}
 
         ${seasonInfo}
 
