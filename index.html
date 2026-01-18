@@ -488,7 +488,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Fritflix Feedback">
 <script>
-const VERSION = 'v1.3.7';
+const VERSION = 'v1.3.8';
 
 window.addEventListener('DOMContentLoaded', () => {
   if (!('serviceWorker' in navigator)) {
@@ -1406,61 +1406,59 @@ function setBanner(mode, extraText) {
     }
 
 // === Client-Speedtest (deine Leitung → Fritflix) ===
-const CLIENT_TEST_FILE_URL = `${API_BASE}/client-test.bin`;   // Pfad zur Testdatei
-const CLIENT_TEST_FILE_SIZE_BYTES = 20 * 1024 * 1024;      // 20 MB
-const CLIENT_PING_URL = `${API_BASE}/health`;              // kleines JSON vom Backend
+const CLIENT_TEST_FILE_URL = `${API_BASE}/client-test.bin`;
+const CLIENT_TEST_FILE_SIZE_BYTES = 20 * 1024 * 1024;
+const CLIENT_PING_URL = `${API_BASE}/health`;
 
+// Optional: Ping kann offen bleiben (health ist bei dir ohne Token).
+// Wenn du Ping auch "sauber" über apiFetch willst: unten ist eine Variante.
 async function measureClientPing(repeats = 4) {
   const times = [];
   for (let i = 0; i < repeats; i++) {
     const start = performance.now();
     try {
-      // cache-buster, damit es nicht aus dem Cache kommt
       await fetch(CLIENT_PING_URL + '?t=' + Date.now(), { cache: 'no-store' });
-      const end = performance.now();
-      times.push(end - start);
+      times.push(performance.now() - start);
     } catch (e) {
       console.warn('Client-Ping-Fehler:', e);
     }
   }
   if (!times.length) return null;
-  const avg = times.reduce((a, b) => a + b, 0) / times.length;
-  return avg; // in ms
+  return times.reduce((a, b) => a + b, 0) / times.length;
 }
 
 async function measureClientDownload() {
   const start = performance.now();
-  const res = await fetch(CLIENT_TEST_FILE_URL + '?t=' + Date.now(), {
-    cache: 'no-store'
-  });
+
+  // WICHTIG: apiFetch benutzen -> setzt X-App-Token Header
+  // apiFetch erwartet bei dir einen Pfad relativ zu /api (so wie bei /latest/items)
+  const res = await apiFetch(`/client-test.bin?t=${Date.now()}`, {
+    method: 'GET',
+    cache: 'no-store',
+  }, 25000);
+
   if (!res.ok) {
     throw new Error('HTTP-Fehler: ' + res.status);
   }
 
   let bytesReceived = 0;
 
+  // Stream lesen (keine komplette Datei im RAM nötig)
   if (res.body && res.body.getReader) {
-    // Moderne Browser: Streaming lesen
     const reader = res.body.getReader();
     while (true) {
       const { done, value } = await reader.read();
       if (done) break;
-      bytesReceived += value.length;
+      bytesReceived += value.byteLength || value.length || 0;
     }
   } else {
-    // Fallback: komplette Datei in einem Rutsch
     const blob = await res.blob();
     bytesReceived = blob.size || CLIENT_TEST_FILE_SIZE_BYTES;
   }
 
-  const end = performance.now();
-  const durationSeconds = (end - start) / 1000;
+  const durationSeconds = (performance.now() - start) / 1000;
+  if (durationSeconds <= 0) throw new Error('Messdauer zu kurz/ungültig');
 
-  if (durationSeconds <= 0) {
-    throw new Error('Messdauer zu kurz/ungültig');
-  }
-
-  // Bits → Mbit/s
   const bits = bytesReceived * 8;
   const mbitPerSecond = (bits / 1_000_000) / durationSeconds;
 
@@ -1491,17 +1489,16 @@ async function runClientSpeedtest() {
     html += `📥 Download von Fritflix: <b>${mbitPerSecond.toFixed(1)} Mbit/s</b><br>`;
     html += `<small>(Messdauer: ${durationSeconds.toFixed(1)} s, Dateigröße ca. ${(CLIENT_TEST_FILE_SIZE_BYTES/1024/1024).toFixed(0)} MB)</small><br><br>`;
 
-    // Grobe Bewertung für Nutzer
-    if (mbitPerSecond >= 15) {
+    if (mbitPerSecond >= 22) {
       html += '✅ Deine Verbindung zu Fritflix ist sehr gut. HD und 4K sollten in der Regel flüssig laufen.';
-    } else if (mbitPerSecond >= 10) {
-      html += '🟢 Deine Verbindung ist gut. HD sollte funktionieren, 4K kann manchmal ruckeln.';  
+    } else if (mbitPerSecond >= 15) {
+      html += '🟢 Deine Verbindung ist gut. HD sollte funktionieren, 4K kann manchmal ruckeln.';
     } else if (mbitPerSecond >= 5) {
       html += '🟡 Deine Verbindung ist okay. HD sollte meist funktionieren. Stelle die Bitrate auf ca. 5!';
     } else if (mbitPerSecond >= 2) {
       html += '🟠 Deine Verbindung ist schwach. Stelle deine Bitrate auf ca. 1-2!.';
     } else {
-      html += '🔴 Deine Verbindung zu Fritflix ist sehr schwach. Streamen kaum möglich. Das liegen sehr wahrscheinlich an deiner Leitung.';
+      html += '🔴 Deine Verbindung zu Fritflix ist sehr schwach. Streamen kaum möglich. Das liegt sehr wahrscheinlich an deiner Leitung.';
     }
 
     out.innerHTML = html;
