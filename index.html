@@ -527,7 +527,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Fritflix Feedback">
 <script>
-const VERSION = 'v1.4.1';
+const VERSION = 'v1.4.2';
 
 window.addEventListener('DOMContentLoaded', () => {
   if (!('serviceWorker' in navigator)) {
@@ -1017,61 +1017,59 @@ function urlBase64ToUint8Array(base64String) {
 
 async function getSWRegistration() {
   if (!('serviceWorker' in navigator)) throw new Error('Service Worker nicht verfügbar');
-  const reg = await navigator.serviceWorker.getRegistration();
-  if (!reg) throw new Error('Service Worker nicht registriert (bitte Seite neu laden)');
+
+  // Wichtig: wartet zuverlässig, bis ein SW wirklich aktiv ist
+  const reg = await navigator.serviceWorker.ready;
+  if (!reg) throw new Error('Service Worker nicht bereit (neu laden)');
   return reg;
 }
 
-// Statusanzeige + Button-State IMMER hier zentral setzen
 async function refreshPushUI() {
   const btn = document.getElementById('push-btn');
-  const statusEl = document.getElementById('push-status-inline');
-  
-  if (!btn || !statusEl) return;
+  if (!btn) return;
 
   try {
-    const supported = 
-      'Notification' in window && 
-      'PushManager' in window && 
+    const supported =
+      'Notification' in window &&
+      'PushManager' in window &&
       'serviceWorker' in navigator;
 
     if (!supported) {
       btn.disabled = true;
       btn.innerHTML = '🔔 Push nicht unterstützt';
-      statusEl.textContent = '';
       return;
     }
 
     const perm = Notification.permission;
 
-    // Noch keine Berechtigung → Button zum Aktivieren
     if (perm !== 'granted') {
       btn.disabled = false;
+      btn.classList.remove('success', 'error', 'loading');
       btn.innerHTML = `🔔 Push aktivieren<br><span class="push-status-inline">nicht aktiviert</span>`;
       btn.onclick = enablePush;
-      statusEl.textContent = '';  // wird schon im HTML gesetzt
       return;
     }
 
-    // Berechtigung da → Subscription prüfen
     const reg = await getSWRegistration();
     const sub = await reg.pushManager.getSubscription();
 
     if (sub) {
-      // Push ist aktiv
       btn.disabled = false;
+      btn.classList.remove('error', 'loading');
+      btn.classList.add('success');
       btn.innerHTML = `🔔 Push deaktivieren<br><span class="push-status-inline"><strong>aktiviert ✓</strong></span>`;
       btn.onclick = disablePush;
-      btn.classList.add('success');     // optional: grün machen
     } else {
-      // Berechtigung da, aber kein Abo
       btn.disabled = false;
+      btn.classList.remove('success', 'error', 'loading');
       btn.innerHTML = `🔔 Push aktivieren<br><span class="push-status-inline">nicht abonniert</span>`;
       btn.onclick = enablePush;
     }
-
   } catch (err) {
     console.warn('Push-Status Fehler:', err);
+    btn.disabled = false;
+    btn.classList.remove('success', 'loading');
+    btn.classList.add('error');
     btn.innerHTML = `🔔 Push aktivieren<br><span class="push-status-inline">Statusfehler</span>`;
     btn.onclick = enablePush;
   }
@@ -1079,44 +1077,33 @@ async function refreshPushUI() {
 
 async function enablePush() {
   const btn = document.getElementById('push-btn');
-  const statusEl = document.getElementById('push-status-inline');
-  if (!btn || !statusEl) return;
+  if (!btn) return;
 
-  const originalHTML = btn.innerHTML;
-
-  // Sofort anzeigen, dass etwas läuft
   btn.disabled = true;
+  btn.classList.remove('success', 'error');
+  btn.classList.add('loading');
   btn.innerHTML = `🔔 Wird aktiviert…<br><span class="push-status-inline">bitte warten (max. 10s)</span>`;
 
-  // Auto-Recovery nach 10 Sekunden – falls etwas hängen bleibt
-  const timeoutId = setTimeout(async () => {
+  const hardTimeout = setTimeout(() => {
     btn.disabled = false;
-    btn.innerHTML = originalHTML;
-    statusEl.textContent = 'Timeout – Status wird neu geladen';
-    await refreshPushUI();
+    btn.classList.remove('loading');
+    btn.classList.add('error');
+    btn.innerHTML = `🔔 Push aktivieren<br><span class="push-status-inline">Timeout – erneut versuchen</span>`;
+    btn.onclick = enablePush;
   }, 10000);
 
   try {
-    const supported = 
-      'Notification' in window && 
-      'PushManager' in window && 
-      'serviceWorker' in navigator;
-
-    if (!supported) throw new Error('Push nicht unterstützt');
-
-    // Berechtigung anfragen
     const perm = await Notification.requestPermission();
     if (perm !== 'granted') throw new Error('Benachrichtigungen nicht erlaubt');
 
-    // Subscribe
     const reg = await getSWRegistration();
-    const existing = await reg.pushManager.getSubscription();
-    const sub = existing || await reg.pushManager.subscribe({
-      userVisibleOnly: true,
-      applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
-    });
 
-    // ans Backend senden
+    const sub = await (await reg.pushManager.getSubscription()) ||
+      await reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
+      });
+
     const res = await apiFetch('/push/subscribe', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -1125,36 +1112,35 @@ async function enablePush() {
 
     if (!res.ok) throw new Error(`Backend Fehler: ${res.status}`);
 
-    // Erfolg → Timeout abbrechen und UI aktualisieren
-    clearTimeout(timeoutId);
+    clearTimeout(hardTimeout);
+    btn.classList.remove('loading');
     await refreshPushUI();
-
   } catch (err) {
+    clearTimeout(hardTimeout);
     console.error('Push aktivieren Fehler:', err);
-    clearTimeout(timeoutId);
     btn.disabled = false;
+    btn.classList.remove('loading');
+    btn.classList.add('error');
     btn.innerHTML = `🔔 Push aktivieren<br><span class="push-status-inline">Fehler – erneut versuchen</span>`;
-    statusEl.textContent = 'Fehler: ' + (err.message || 'unbekannt');
-    // Optional: nach 4 Sekunden wieder normal
-    setTimeout(() => refreshPushUI(), 4000);
+    btn.onclick = enablePush;
   }
 }
-    
+
 async function disablePush() {
   const btn = document.getElementById('push-btn');
-  const statusEl = document.getElementById('push-status-inline');
-  if (!btn || !statusEl) return;
-
-  const originalHTML = btn.innerHTML;
+  if (!btn) return;
 
   btn.disabled = true;
+  btn.classList.remove('success', 'error');
+  btn.classList.add('loading');
   btn.innerHTML = `🔔 Wird deaktiviert…<br><span class="push-status-inline">bitte warten (max. 10s)</span>`;
 
-  const timeoutId = setTimeout(async () => {
+  const hardTimeout = setTimeout(() => {
     btn.disabled = false;
-    btn.innerHTML = originalHTML;
-    statusEl.textContent = 'Timeout – Status wird neu geladen';
-    await refreshPushUI();
+    btn.classList.remove('loading');
+    btn.classList.add('error');
+    btn.innerHTML = `🔔 Push deaktivieren<br><span class="push-status-inline">Timeout – erneut versuchen</span>`;
+    btn.onclick = disablePush;
   }, 10000);
 
   try {
@@ -1162,26 +1148,26 @@ async function disablePush() {
     const sub = await reg.pushManager.getSubscription();
 
     if (sub) {
-      // Optional: Backend informieren
       await apiFetch('/push/unsubscribe', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ endpoint: sub.endpoint }),
-      }, 10000);
+      }, 10000).catch(() => {});
 
       await sub.unsubscribe();
     }
 
-    clearTimeout(timeoutId);
+    clearTimeout(hardTimeout);
+    btn.classList.remove('loading');
     await refreshPushUI();
-
   } catch (err) {
+    clearTimeout(hardTimeout);
     console.error('Push deaktivieren Fehler:', err);
-    clearTimeout(timeoutId);
     btn.disabled = false;
+    btn.classList.remove('loading');
+    btn.classList.add('error');
     btn.innerHTML = `🔔 Push deaktivieren<br><span class="push-status-inline">Fehler – erneut versuchen</span>`;
-    statusEl.textContent = 'Fehler: ' + (err.message || 'unbekannt');
-    setTimeout(() => refreshPushUI(), 4000);
+    btn.onclick = disablePush;
   }
 }
     
@@ -1986,16 +1972,7 @@ if (sliderContainer) {
 // Init
 loadLatestItems();
 setInterval(loadLatestItems, 300000);  // Slider alle 5 Min
-
-refreshPushUI().then(async () => {
-  const reg = await navigator.serviceWorker.getRegistration();
-  const sub = reg ? await reg.pushManager.getSubscription() : null;
-  const btn = document.getElementById('push-btn');
-  if (btn && Notification.permission === 'granted' && sub) {
-    btn.innerHTML = '🔔 Push deaktivieren';
-    btn.onclick = disablePush;
-  }
-});
+    
   </script>
 
   <div id="update-banner" style="
