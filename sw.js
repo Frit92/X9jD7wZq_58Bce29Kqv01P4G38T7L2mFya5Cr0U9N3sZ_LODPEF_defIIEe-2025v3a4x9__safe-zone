@@ -105,6 +105,50 @@ self.addEventListener('message', event => {
   }
 });
 
+self.addEventListener('push', event => {
+  let data = {};
+
+  try {
+    data = event.data ? event.data.json() : {};
+  } catch (e) {
+    data = {};
+  }
+
+  const title = data.title || 'Fritflix';
+  const body  = data.body  || 'Neue Filme oder Serien verfügbar 🎬';
+  const url   = data.url   || BASE_PATH + '/';
+
+  event.waitUntil(
+    self.registration.showNotification(title, {
+      body,
+      icon: `${BASE_PATH}/icon-192.png`,
+      badge: `${BASE_PATH}/icon-192.png`,
+      data: { url }
+    })
+  );
+});
+
+// KLICK auf Notification → App öffnen
+self.addEventListener('notificationclick', event => {
+  event.notification.close();
+
+  const targetUrl = event.notification.data?.url || BASE_PATH + '/';
+
+  event.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true })
+      .then(clientList => {
+        for (const client of clientList) {
+          if (client.url.includes(BASE_PATH) && 'focus' in client) {
+            return client.focus();
+          }
+        }
+        if (clients.openWindow) {
+          return clients.openWindow(targetUrl);
+        }
+      })
+  );
+});
+
 
 
 
