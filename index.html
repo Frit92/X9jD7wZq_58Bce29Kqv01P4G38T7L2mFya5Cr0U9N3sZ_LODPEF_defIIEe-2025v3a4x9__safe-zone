@@ -491,43 +491,65 @@
 const VERSION = 'v1.3.5';
 
 window.addEventListener('DOMContentLoaded', () => {
-  if ('serviceWorker' in navigator) {
-    let newWorker;
-    const updateBanner = document.getElementById('update-banner');
-    const reloadBtn = document.getElementById('update-reload-btn');
-
-    function showUpdateBanner() {
-      if (!updateBanner || !reloadBtn) return;
-      updateBanner.style.display = 'block';
-      reloadBtn.onclick = () => {
-        if (newWorker) newWorker.postMessage({ type: 'SKIP_WAITING' });
-      };
-    }
-
-    navigator.serviceWorker.register('sw.js?v=' + VERSION)
-      .then(reg => {
-        console.log('SW registriert:', reg.scope);
-
-        if (reg.waiting) {
-          newWorker = reg.waiting;
-          showUpdateBanner();
-        }
-
-        reg.addEventListener('updatefound', () => {
-          newWorker = reg.installing;
-          newWorker.addEventListener('statechange', () => {
-            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-              showUpdateBanner();
-            }
-          });
-        });
-      })
-      .catch(err => console.error('SW Registrierung fehlgeschlagen:', err));
-
-    navigator.serviceWorker.addEventListener('controllerchange', () => {
-      window.location.reload();
-    });
+  if (!('serviceWorker' in navigator)) {
+    // Kein Service Worker → Push-UI trotzdem initial setzen
+    if (typeof refreshPushUI === 'function') refreshPushUI();
+    return;
   }
+
+  let newWorker;
+  const updateBanner = document.getElementById('update-banner');
+  const reloadBtn = document.getElementById('update-reload-btn');
+
+  function showUpdateBanner() {
+    if (!updateBanner || !reloadBtn) return;
+    updateBanner.style.display = 'block';
+    reloadBtn.onclick = () => {
+      if (newWorker) {
+        newWorker.postMessage({ type: 'SKIP_WAITING' });
+      }
+    };
+  }
+
+  navigator.serviceWorker
+    .register('sw.js?v=' + VERSION)
+    .then(async (reg) => {
+      console.log('SW registriert:', reg.scope);
+
+      // 🔔 Push-UI IMMER nach erfolgreicher Registrierung synchronisieren
+      if (typeof refreshPushUI === 'function') {
+        await refreshPushUI();
+      }
+
+      // Bereits wartender Worker
+      if (reg.waiting) {
+        newWorker = reg.waiting;
+        showUpdateBanner();
+      }
+
+      // Neuer Worker im Installationsprozess
+      reg.addEventListener('updatefound', () => {
+        newWorker = reg.installing;
+        newWorker.addEventListener('statechange', () => {
+          if (
+            newWorker.state === 'installed' &&
+            navigator.serviceWorker.controller
+          ) {
+            showUpdateBanner();
+          }
+        });
+      });
+    })
+    .catch(err => {
+      console.error('SW Registrierung fehlgeschlagen:', err);
+      // Auch hier: Push-UI wenigstens korrekt setzen
+      if (typeof refreshPushUI === 'function') refreshPushUI();
+    });
+
+  // Nach skipWaiting → Seite sauber neu laden
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    window.location.reload();
+  });
 });
 </script>
 </head>
@@ -956,51 +978,107 @@ function urlBase64ToUint8Array(base64String) {
 
 async function getSWRegistration() {
   if (!('serviceWorker' in navigator)) throw new Error('Service Worker nicht verfügbar');
+  const reg = await navigator.serviceWorker.ready;
+  if (!reg) throw new Error('Service Worker nicht bereit (bitte neu laden)');
+  return reg;
+}
+
+// ===================
+// PUSH UI + LOGIC
+// ===================
+
+const VAPID_PUBLIC_KEY = "BBpyaui5X3zV01eaVjY3lwRZReD9VoNo7gR4fqrkZ--DckIA7bxfbcwjrAxPTYZQZ9Jf5zu7uyUPJyADedKL1QQ";
+const PUSH_STATUS_EL = () => document.getElementById('push-status');
+
+function urlBase64ToUint8Array(base64String) {
+  const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
+  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+  const rawData = atob(base64);
+  const output = new Uint8Array(rawData.length);
+  for (let i = 0; i < rawData.length; i++) output[i] = rawData.charCodeAt(i);
+  return output;
+}
+
+async function getSWRegistration() {
+  if (!('serviceWorker' in navigator)) throw new Error('Service Worker nicht verfügbar');
   const reg = await navigator.serviceWorker.getRegistration();
   if (!reg) throw new Error('Service Worker nicht registriert (bitte Seite neu laden)');
   return reg;
 }
 
-// Statusanzeige aktualisieren
+// Statusanzeige + Button-State IMMER hier zentral setzen
 async function refreshPushUI() {
   const el = PUSH_STATUS_EL();
-  if (!el) return;
+  const btn = document.getElementById('push-btn');
+  if (!el || !btn) return;
 
   try {
-    if (!('Notification' in window) || !('PushManager' in window)) {
+    const supported =
+      ('Notification' in window) &&
+      ('PushManager' in window) &&
+      ('serviceWorker' in navigator);
+
+    if (!supported) {
       el.textContent = 'Push: nicht unterstützt (Browser)';
+      btn.disabled = true;
+      btn.innerHTML = '🔔 Push nicht unterstützt';
+      btn.onclick = null;
       return;
     }
 
     const perm = Notification.permission;
-    const reg = await navigator.serviceWorker.getRegistration();
-    const sub = reg ? await reg.pushManager.getSubscription() : null;
 
+    // Permission nicht erteilt
     if (perm !== 'granted') {
       el.textContent = `Push: nicht aktiviert (Berechtigung: ${perm})`;
+      btn.disabled = false;
+      btn.innerHTML = '🔔 Push aktivieren (neue Titel)';
+      btn.onclick = enablePush;
       return;
     }
 
-    el.textContent = sub ? 'Push: aktiviert ✅' : 'Push: Berechtigung ok, aber nicht abonniert';
-  } catch {
+    // Permission erteilt -> Subscription prüfen
+    const reg = await getSWRegistration();
+    const sub = await reg.pushManager.getSubscription();
+
+    if (sub) {
+      el.textContent = 'Push: aktiviert ✅';
+      btn.disabled = false;
+      btn.innerHTML = '🔔 Push deaktivieren';
+      btn.onclick = disablePush;
+    } else {
+      el.textContent = 'Push: Berechtigung ok, aber nicht abonniert';
+      btn.disabled = false;
+      btn.innerHTML = '🔔 Push aktivieren (neue Titel)';
+      btn.onclick = enablePush;
+    }
+  } catch (e) {
+    console.warn('Push UI Fehler:', e);
     el.textContent = 'Push: Status konnte nicht geprüft werden';
+    btn.disabled = false;
+    btn.innerHTML = '🔔 Push aktivieren (neue Titel)';
+    btn.onclick = enablePush;
   }
 }
 
-   async function enablePush() {
+async function enablePush() {
   const btn = document.getElementById('push-btn');
-  if (btn) { btn.disabled = true; btn.innerHTML = '🔔 Push wird aktiviert…'; }
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = '🔔 Push wird aktiviert…';
+  }
 
   try {
-    if (!('Notification' in window) || !('serviceWorker' in navigator) || !('PushManager' in window)) {
-      throw new Error('Push wird von diesem Browser nicht unterstützt');
-    }
+    const supported =
+      ('Notification' in window) &&
+      ('PushManager' in window) &&
+      ('serviceWorker' in navigator);
 
-    // Permission
+    if (!supported) throw new Error('Push wird von diesem Browser nicht unterstützt');
+
+    // Permission anfragen
     const perm = await Notification.requestPermission();
-    if (perm !== 'granted') {
-      throw new Error('Benachrichtigungen wurden nicht erlaubt');
-    }
+    if (perm !== 'granted') throw new Error('Benachrichtigungen wurden nicht erlaubt');
 
     // Subscribe
     const reg = await getSWRegistration();
@@ -1010,7 +1088,7 @@ async function refreshPushUI() {
       applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
     });
 
-    // An Backend schicken
+    // ans Backend
     const res = await apiFetch('/push/subscribe', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -1018,26 +1096,28 @@ async function refreshPushUI() {
     }, 10000);
 
     if (!res.ok) throw new Error(`Backend: HTTP ${res.status}`);
-
-    if (btn) { btn.disabled = false; btn.innerHTML = '🔔 Push deaktivieren'; btn.onclick = disablePush; }
-    await refreshPushUI();
   } catch (e) {
     console.error('Push aktivieren Fehler:', e);
     alert('Push aktivieren fehlgeschlagen: ' + (e.message || e));
-    if (btn) { btn.disabled = false; btn.innerHTML = '🔔 Push aktivieren (neue Titel)'; btn.onclick = enablePush; }
+  } finally {
+    // Button + Text wieder sauber setzen (zentral)
     await refreshPushUI();
   }
 }
 
 async function disablePush() {
   const btn = document.getElementById('push-btn');
-  if (btn) { btn.disabled = true; btn.innerHTML = '🔕 Push wird deaktiviert…'; }
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = '🔕 Push wird deaktiviert…';
+  }
 
   try {
     const reg = await getSWRegistration();
     const sub = await reg.pushManager.getSubscription();
+
     if (sub) {
-      // Backend informieren (optional, aber sauber)
+      // optional: Backend informieren
       await apiFetch('/push/unsubscribe', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -1046,15 +1126,13 @@ async function disablePush() {
 
       await sub.unsubscribe();
     }
-
-    if (btn) { btn.disabled = false; btn.innerHTML = '🔔 Push aktivieren (neue Titel)'; btn.onclick = enablePush; }
-    await refreshPushUI();
   } catch (e) {
     console.error('Push deaktivieren Fehler:', e);
-    if (btn) { btn.disabled = false; btn.innerHTML = '🔔 Push aktivieren (neue Titel)'; btn.onclick = enablePush; }
+    alert('Push deaktivieren fehlgeschlagen: ' + (e.message || e));
+  } finally {
     await refreshPushUI();
   }
-} 
+}
 
 function setBanner(mode, extraText) {
   const banner = document.getElementById('switch-banner');
@@ -1090,7 +1168,7 @@ function setBanner(mode, extraText) {
 
     async function loadStatus() {
       try {
-        const res = await fetchWithTimeout(`/status`);
+        const res = await fetchWithTimeout(`${API_BASE}/status`);
         const data = await res.json();
 
         lastSuccessTs = Date.now();
@@ -1200,7 +1278,7 @@ function setBanner(mode, extraText) {
     }
 
     async function getStatusSafe() {
-      const res = await fetchWithTimeout(`/status`, {}, FETCH_TIMEOUT_MS_STATUS);
+      const res = await fetchWithTimeout(`${API_BASE}/status`, {}, FETCH_TIMEOUT_MS_STATUS);
       return res.json();
     }
 
@@ -1559,7 +1637,7 @@ let sliderPos = 0;
 
 async function loadLatestItems() {
   try {
-    const res = await fetch(`/latest/items?limit=20`);
+    const res = await apiFetch(`/latest/items?limit=20`, {}, FETCH_TIMEOUT_MS);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();
 
