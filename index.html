@@ -527,7 +527,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Fritflix Feedback">
 <script>
-const VERSION = 'v1.4.0';
+const VERSION = 'v1.4.1';
 
 window.addEventListener('DOMContentLoaded', () => {
   if (!('serviceWorker' in navigator)) {
@@ -1079,22 +1079,34 @@ async function refreshPushUI() {
 
 async function enablePush() {
   const btn = document.getElementById('push-btn');
-  if (btn) {
-    btn.disabled = true;
-    btn.innerHTML = '🔔 Push wird aktiviert…';
-  }
+  const statusEl = document.getElementById('push-status-inline');
+  if (!btn || !statusEl) return;
+
+  const originalHTML = btn.innerHTML;
+
+  // Sofort anzeigen, dass etwas läuft
+  btn.disabled = true;
+  btn.innerHTML = `🔔 Wird aktiviert…<br><span class="push-status-inline">bitte warten (max. 10s)</span>`;
+
+  // Auto-Recovery nach 10 Sekunden – falls etwas hängen bleibt
+  const timeoutId = setTimeout(async () => {
+    btn.disabled = false;
+    btn.innerHTML = originalHTML;
+    statusEl.textContent = 'Timeout – Status wird neu geladen';
+    await refreshPushUI();
+  }, 10000);
 
   try {
-    const supported =
-      ('Notification' in window) &&
-      ('PushManager' in window) &&
-      ('serviceWorker' in navigator);
+    const supported = 
+      'Notification' in window && 
+      'PushManager' in window && 
+      'serviceWorker' in navigator;
 
-    if (!supported) throw new Error('Push wird von diesem Browser nicht unterstützt');
+    if (!supported) throw new Error('Push nicht unterstützt');
 
-    // Permission anfragen
+    // Berechtigung anfragen
     const perm = await Notification.requestPermission();
-    if (perm !== 'granted') throw new Error('Benachrichtigungen wurden nicht erlaubt');
+    if (perm !== 'granted') throw new Error('Benachrichtigungen nicht erlaubt');
 
     // Subscribe
     const reg = await getSWRegistration();
@@ -1104,36 +1116,53 @@ async function enablePush() {
       applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
     });
 
-    // ans Backend
+    // ans Backend senden
     const res = await apiFetch('/push/subscribe', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ subscription: sub }),
     }, 10000);
 
-    if (!res.ok) throw new Error(`Backend: HTTP ${res.status}`);
-  } catch (e) {
-    console.error('Push aktivieren Fehler:', e);
-    alert('Push aktivieren fehlgeschlagen: ' + (e.message || e));
-  } finally {
-    // Button + Text wieder sauber setzen (zentral)
+    if (!res.ok) throw new Error(`Backend Fehler: ${res.status}`);
+
+    // Erfolg → Timeout abbrechen und UI aktualisieren
+    clearTimeout(timeoutId);
     await refreshPushUI();
+
+  } catch (err) {
+    console.error('Push aktivieren Fehler:', err);
+    clearTimeout(timeoutId);
+    btn.disabled = false;
+    btn.innerHTML = `🔔 Push aktivieren<br><span class="push-status-inline">Fehler – erneut versuchen</span>`;
+    statusEl.textContent = 'Fehler: ' + (err.message || 'unbekannt');
+    // Optional: nach 4 Sekunden wieder normal
+    setTimeout(() => refreshPushUI(), 4000);
   }
 }
-
+    
 async function disablePush() {
   const btn = document.getElementById('push-btn');
-  if (btn) {
-    btn.disabled = true;
-    btn.innerHTML = '🔕 Push wird deaktiviert…';
-  }
+  const statusEl = document.getElementById('push-status-inline');
+  if (!btn || !statusEl) return;
+
+  const originalHTML = btn.innerHTML;
+
+  btn.disabled = true;
+  btn.innerHTML = `🔔 Wird deaktiviert…<br><span class="push-status-inline">bitte warten (max. 10s)</span>`;
+
+  const timeoutId = setTimeout(async () => {
+    btn.disabled = false;
+    btn.innerHTML = originalHTML;
+    statusEl.textContent = 'Timeout – Status wird neu geladen';
+    await refreshPushUI();
+  }, 10000);
 
   try {
     const reg = await getSWRegistration();
     const sub = await reg.pushManager.getSubscription();
 
     if (sub) {
-      // optional: Backend informieren
+      // Optional: Backend informieren
       await apiFetch('/push/unsubscribe', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -1142,14 +1171,20 @@ async function disablePush() {
 
       await sub.unsubscribe();
     }
-  } catch (e) {
-    console.error('Push deaktivieren Fehler:', e);
-    alert('Push deaktivieren fehlgeschlagen: ' + (e.message || e));
-  } finally {
+
+    clearTimeout(timeoutId);
     await refreshPushUI();
+
+  } catch (err) {
+    console.error('Push deaktivieren Fehler:', err);
+    clearTimeout(timeoutId);
+    btn.disabled = false;
+    btn.innerHTML = `🔔 Push deaktivieren<br><span class="push-status-inline">Fehler – erneut versuchen</span>`;
+    statusEl.textContent = 'Fehler: ' + (err.message || 'unbekannt');
+    setTimeout(() => refreshPushUI(), 4000);
   }
 }
-
+    
 function setBanner(mode, extraText) {
   const banner = document.getElementById('switch-banner');
   const text = document.getElementById('switch-text');
