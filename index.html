@@ -343,40 +343,6 @@
   margin: 0.15em 0;
   line-height: 1.2;
 }
-.slider-controls { display: flex; justify-content: center; gap: 1em; margin-top: 0.5em; }
-    
-.slider-btn {
-  background: rgba(255, 255, 255, 0.12);   /* Leicht transparentes Weiß/Grau */
-  color: #ffffff;
-  border: none;
-  border-radius: 50%;
-  width: 44px;
-  height: 44px;
-  font-size: 1.4em;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: all 0.25s ease;
-  backdrop-filter: blur(6px);           /* Glassmorphism-Effekt (cool auf dunklem BG) */
-  box-shadow: 0 4px 12px rgba(0,0,0,0.4);
-}
-
-.slider-btn:hover {
-  background: rgba(255, 255, 255, 0.25);
-  transform: scale(1.15);
-}
-
-.slider-btn:active {
-  transform: scale(0.92);
-}
-
-.slider-btn:disabled {
-  opacity: 0.3;
-  cursor: not-allowed;
-  box-shadow: none;
-  background: rgba(255,255,255,0.05);
-}
 
 /* Detail Modal */
 #detailModal {
@@ -527,7 +493,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Fritflix Feedback">
 <script>
-const VERSION = 'v1.4.2';
+const VERSION = 'v1.4.3';
 
 window.addEventListener('DOMContentLoaded', () => {
   if (!('serviceWorker' in navigator)) {
@@ -643,10 +609,6 @@ window.addEventListener('DOMContentLoaded', () => {
 <div id="latest-slider">
     <h2>Neueste Filme & Serien</h2>
     <div class="slider-container" id="slider-container"></div>
-    <div class="slider-controls">
-    <button class="slider-btn left" onclick="slideLeft()">◀</button>
-    <button class="slider-btn right" onclick="slideRight()">▶</button>
-  </div>
 </div>
 
   <!-- FAQ Button (unter Speedtest, grün) -->
@@ -1723,7 +1685,6 @@ data.items.forEach(item => {
   container.innerHTML += html;
 });
     
-    updateArrowState();
   } catch (e) {
     console.error('Latest Items Fehler:', e);
     document.getElementById('slider-container').innerHTML = 
@@ -1951,23 +1912,6 @@ function openDetail(item) {
 
 // Pfeile + Wischen (wie vorher)
 const sliderContainer = document.getElementById('slider-container');
-
-function updateArrowState() {
-  const left = document.querySelector('.slider-btn.left');
-  const right = document.querySelector('.slider-btn.right');
-  if (!left || !right || !sliderContainer) return;
-
-  left.disabled  = sliderContainer.scrollLeft <= 1;
-  right.disabled = sliderContainer.scrollLeft + sliderContainer.clientWidth >= sliderContainer.scrollWidth - 1;
-}
-
-function slideLeft()  { if (sliderContainer) sliderContainer.scrollBy({ left: -140, behavior: 'smooth' }); }
-function slideRight() { if (sliderContainer) sliderContainer.scrollBy({ left:  140, behavior: 'smooth' }); }
-
-if (sliderContainer) {
-  sliderContainer.addEventListener('scroll', updateArrowState);
-  window.addEventListener('resize', updateArrowState);
-}
 
 // Init
 loadLatestItems();
