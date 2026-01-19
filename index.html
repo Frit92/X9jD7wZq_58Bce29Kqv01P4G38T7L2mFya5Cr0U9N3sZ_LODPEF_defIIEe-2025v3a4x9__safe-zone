@@ -494,7 +494,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Fritflix Feedback">
 <script>
-const VERSION = 'v1.4.6';
+const VERSION = 'v1.4.7';
 
 window.addEventListener('DOMContentLoaded', () => {
   if (!('serviceWorker' in navigator)) {
@@ -1670,8 +1670,14 @@ const hasJFSeasons = item.type === 'Series' && item.season_count_source === 'jel
 
 if (hasJFSeasons) {
   const sc = Number(item.season_count);
+  const hasSpecials = !!item.has_specials;
+
   if (Number.isFinite(sc) && sc > 0) {
-    seasonInfo = `${sc} Staffel${sc === 1 ? '' : 'n'}`; // schöner als "S02"
+    seasonInfo = `${sc} Staffel${sc === 1 ? '' : 'n'}`;
+    if (hasSpecials) seasonInfo += ' + Specials';
+  } else if (hasSpecials) {
+    // falls mal nur Specials existieren
+    seasonInfo = 'Specials';
   }
 
   // Neueste Episode nur anzeigen, wenn vorhanden
@@ -1875,10 +1881,22 @@ function openDetail(item) {
   // Serieninfo
 let seasonInfo = '';
 if (item.type === 'Series') {
-  if (item.season_count_source === 'jellyfin' && item.season_count) {
-    seasonInfo = `<p><strong>Staffeln:</strong> ${item.season_count}</p>`;
+  const sc = Number(item.season_count);
+  const hasSpecials = !!item.has_specials;
+
+  // Optional: später aus API lieferbar, z.B. item.special_movies_count oder item.has_movies
+  const hasMovies = !!item.has_movies; // bleibt erstmal false/undefined, bis du es serverseitig ergänzt
+
+  if (item.season_count_source === 'jellyfin' && Number.isFinite(sc) && sc > 0) {
+    let label = `${sc} Staffel${sc === 1 ? '' : 'n'}`;
+
+    if (hasSpecials) label += ' inkl. Specials und/oder Filme';
+
+    seasonInfo = `<p><strong>Staffeln:</strong> ${label}</p>`;
+  } else if (hasSpecials) {
+    // falls nur Specials existieren
+    seasonInfo = `<p><strong>Specials:</strong> vorhanden</p>`;
   } else {
-    // optional: gar nichts anzeigen, statt "-"
     seasonInfo = '';
   }
 
