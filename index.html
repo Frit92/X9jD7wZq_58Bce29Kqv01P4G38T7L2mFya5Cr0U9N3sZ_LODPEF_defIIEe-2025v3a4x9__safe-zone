@@ -487,6 +487,89 @@
 .detail-btn.static{
   cursor: default;
 }
+
+/* =========================
+   Update Banner (groß & tappbar)
+   ========================= */
+
+#update-banner{
+  display:none;
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 12px;
+  z-index: 9999;
+  padding: 0 12px;
+
+  /* iOS Home-Bar berücksichtigen */
+  padding-bottom: calc(8px + env(safe-area-inset-bottom));
+}
+
+.update-banner-inner{
+  max-width: 520px;
+  margin: 0 auto;
+  background: rgba(34,34,34,0.98);
+  color: #fff;
+  border: 1px solid #444;
+  border-radius: 14px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.55);
+
+  display: flex;
+  align-items: center;
+  gap: 12px;
+
+  padding: 12px;
+}
+
+.update-banner-text{
+  flex: 1;
+  text-align: left;
+  line-height: 1.2;
+}
+
+.update-banner-title{
+  font-weight: 800;
+  font-size: 0.98em;
+}
+
+.update-banner-sub{
+  margin-top: 2px;
+  font-size: 0.88em;
+  opacity: 0.9;
+}
+
+.update-banner-btn{
+  border: none;
+  border-radius: 12px;
+  background: #e50914;
+  color: #fff;
+  font-weight: 800;
+  cursor: pointer;
+
+  /* BIG HIT AREA */
+  padding: 12px 14px;
+  min-height: 44px;     /* Apple-Guideline */
+  min-width: 120px;
+
+  touch-action: manipulation;
+}
+
+.update-banner-btn:active{
+  transform: scale(0.98);
+}
+
+@media (max-width: 420px){
+  .update-banner-inner{
+    gap: 10px;
+    padding: 12px;
+  }
+
+  .update-banner-btn{
+    min-width: 110px;
+    padding: 12px;
+  }
+}
+
   </style>
   <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
   <link rel="manifest" href="manifest.json">
@@ -495,7 +578,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Fritflix Feedback">
 <script>
-const VERSION = 'v1.4.8';
+const VERSION = 'v1.4.9';
 
 window.addEventListener('DOMContentLoaded', () => {
   if (!('serviceWorker' in navigator)) {
@@ -1962,34 +2045,20 @@ setInterval(loadLatestItems, 300000);  // Slider alle 5 Min
     
   </script>
 
-  <div id="update-banner" style="
-  display:none;
-  position:fixed;
-  left:50%;
-  bottom:16px;
-  transform:translateX(-50%);
-  background:#222;
-  color:#fff;
-  border:1px solid #444;
-  border-radius:999px;
-  padding:0.5em 1em;
-  font-size:0.9em;
-  box-shadow:0 2px 8px rgba(0,0,0,0.5);
-  z-index:9999;
-">
-  Neue Version von Fritflix Feedback verfügbar.
-  <button id="update-reload-btn" style="
-    margin-left:0.7em;
-    padding:0.3em 0.8em;
-    border:none;
-    border-radius:999px;
-    background:#e50914;
-    color:#fff;
-    font-weight:600;
-    cursor:pointer;
-  ">
-    Aktualisieren
-  </button>
+<div id="update-banner" role="status" aria-live="polite">
+  <div class="update-banner-inner">
+    <div class="update-banner-text">
+      <div class="update-banner-title">Update verfügbar</div>
+      <div class="update-banner-sub">
+        Neue Version von Fritflix Feedback ist bereit.
+      </div>
+    </div>
+
+    <button id="update-reload-btn" class="update-banner-btn">
+      Aktualisieren
+    </button>
+  </div>
+</div>
 
 </div>
 <div id="detailModal">
